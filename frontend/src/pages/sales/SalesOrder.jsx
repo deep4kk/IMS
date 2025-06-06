@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -53,12 +52,12 @@ function SalesOrder() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [totalOrders, setTotalOrders] = useState(0);
-  
+
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialog, setViewDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  
+
   // Form states
   const [formData, setFormData] = useState({
     customer: null,
@@ -76,7 +75,7 @@ function SalesOrder() {
   const [salesPeople, setSalesPeople] = useState(['John Doe', 'Jane Smith']); // Mock data
   const [newSalesPerson, setNewSalesPerson] = useState('');
   const [addSalesPersonMode, setAddSalesPersonMode] = useState(false);
-  
+
   // Filter states
   const [filters, setFilters] = useState({
     status: '',
@@ -101,7 +100,7 @@ function SalesOrder() {
         limit: rowsPerPage,
         ...filters
       };
-      
+
       const response = await axios.get('/api/sales-orders', { params });
       setOrders(response.data.salesOrders);
       setTotalOrders(response.data.totalOrders);
@@ -133,30 +132,7 @@ function SalesOrder() {
   };
 
   const handleCreateOrder = async () => {
-    if (!formData.customer || !formData.customer._id) {
-      showAlert('error', 'Please select a customer.');
-      return;
-    }
     try {
-      const orderData = {
-        customer: formData.customer?._id,
-        orderDate: formData.orderDate,
-        expectedDeliveryDate: formData.expectedShipmentDate,
-        deliveryMethod: formData.deliveryMethod,
-        salesPerson: formData.salesPerson,
-        items: formData.items.map(item => ({
-          sku: item.sku?._id,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          discount: item.discount,
-          tax: item.tax,
-          totalAmount: (item.quantity * item.unitPrice) - item.discount + item.tax
-        })),
-        notes: formData.notes,
-        shippingAddress: formData.shippingAddress,
-        billingAddress: formData.billingAddress
-      };
-
       // Validate required fields before sending
       if (!formData.customer?._id) {
         showAlert('error', 'Please select a customer');
@@ -170,6 +146,29 @@ function SalesOrder() {
         showAlert('error', 'Please select SKU for all items');
         return;
       }
+      if (!formData.deliveryMethod) {
+        showAlert('error', 'Please select delivery method');
+        return;
+      }
+
+      const orderData = {
+        customer: formData.customer._id,
+        orderDate: formData.orderDate,
+        expectedDeliveryDate: formData.expectedShipmentDate,
+        deliveryMethod: formData.deliveryMethod,
+        salesPerson: formData.salesPerson,
+        items: formData.items.map(item => ({
+          sku: item.sku._id,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount: item.discount,
+          tax: item.tax,
+          totalAmount: (item.quantity * item.unitPrice) - item.discount + item.tax
+        })),
+        notes: formData.notes,
+        shippingAddress: formData.shippingAddress || formData.customer.shippingAddress || formData.customer.address,
+        billingAddress: formData.billingAddress || formData.customer.billingAddress || formData.customer.address
+      };
 
       await axios.post('/api/sales-orders', orderData);
       showAlert('success', 'Sales order created successfully');
@@ -177,6 +176,7 @@ function SalesOrder() {
       resetForm();
       fetchOrders();
     } catch (error) {
+      console.error('Sales order creation error:', error);
       showAlert('error', error.response?.data?.message || 'Failed to create sales order');
     }
   };
@@ -623,7 +623,7 @@ function SalesOrder() {
                   </Box>
                 )}
               </Grid>
-              
+
               {/* Items Section */}
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom>Order Items</Typography>
@@ -712,7 +712,7 @@ function SalesOrder() {
                     </CardContent>
                   </Card>
                 ))}
-                
+
                 <Button
                   variant="outlined"
                   startIcon={<AddIcon />}
@@ -721,13 +721,13 @@ function SalesOrder() {
                 >
                   Add Item
                 </Button>
-                
+
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="h6" align="right">
                   Total Amount: ₹{calculateTotal().toFixed(2)}
                 </Typography>
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   label="Notes"

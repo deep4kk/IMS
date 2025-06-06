@@ -53,8 +53,11 @@ function Indent() {
   const fetchVendorsForSku = async (skuId) => {
     if (!skuId || vendors[skuId]) return; // Don't fetch if already fetched
     try {
-      const res = await axios.get(`/api/purchase-indents/sku/${skuId}/vendors`);
-      setVendors(v => ({ ...v, [skuId]: res.data }));
+      // Use the SKU endpoint to get vendors from alternateSuppliers
+      const res = await axios.get(`/api/skus/${skuId}`, { params: { populate: 'alternateSuppliers' } });
+      const skuData = res.data;
+      const skuVendors = skuData.alternateSuppliers || [];
+      setVendors(v => ({ ...v, [skuId]: skuVendors }));
     } catch (err) {
       console.error(`Failed to fetch vendors for SKU ${skuId}`, err);
       // Set empty array on failure to prevent re-fetching
