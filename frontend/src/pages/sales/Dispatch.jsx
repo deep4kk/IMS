@@ -57,6 +57,8 @@ function Dispatch() {
   const [skuStock, setSkuStock] = useState({});
   const [dispatchQuantities, setDispatchQuantities] = useState({});
   const [loading, setLoading] = useState(false);
+  const [dispatchLogs, setDispatchLogs] = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
   const { showSuccess, showError } = useAlert();
 
   useEffect(() => {
@@ -96,6 +98,26 @@ function Dispatch() {
     } catch (error) {
       showError('Failed to fetch SKU stock information');
     }
+  };
+
+  const fetchDispatchLogs = async (orderId) => {
+    if (!orderId) return;
+    setLoadingLogs(true);
+    try {
+      const response = await axios.get(`/api/sales-orders/${orderId}/dispatch-logs`);
+      setDispatchLogs(response.data || []);
+    } catch (error) {
+      showError('Failed to fetch dispatch logs');
+      setDispatchLogs([]);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  const handleViewOrder = (order) => {
+    setSelectedOrder(order);
+    fetchDispatchLogs(order._id);
+    setViewDialog(true);
   };
 
   const handleDispatchOrder = async (order) => {
@@ -198,14 +220,11 @@ function Dispatch() {
                       {new Date(order.orderDate).toLocaleDateString()}
                     </TableCell>
                     <TableCell>{order.items?.length || 0}</TableCell>
-                    <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
                     <TableCell>
                       <IconButton
                         size="small"
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setViewDialog(true);
-                        }}
+                        onClick={() => handleViewOrder(order)}
                       >
                         <ViewIcon />
                       </IconButton>
@@ -263,14 +282,11 @@ function Dispatch() {
                         size="small"
                       />
                     </TableCell>
-                    <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
                     <TableCell>
                       <IconButton
                         size="small"
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setViewDialog(true);
-                        }}
+                        onClick={() => handleViewOrder(order)}
                       >
                         <ViewIcon />
                       </IconButton>
@@ -382,24 +398,27 @@ function Dispatch() {
       {/* View Order Dialog */}
       <Dialog
         open={viewDialog}
-        onClose={() => setViewDialog(false)}
-        maxWidth="md"
+        onClose={() => {
+          setViewDialog(false);
+          setDispatchLogs([]); // Clear logs when dialog closes
+        }}
+        maxWidth="lg" // Increased width to accommodate logs
         fullWidth
       >
-        <DialogTitle>Order Details</DialogTitle>
+        <DialogTitle>Order Details: {selectedOrder?.orderNumber}</DialogTitle>
         <DialogContent>
           {selectedOrder && (
             <Box>
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="subtitle2">Order Number:</Typography>
                   <Typography>{selectedOrder.orderNumber}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="subtitle2">Customer:</Typography>
                   <Typography>{selectedOrder.customer?.name}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="subtitle2">Status:</Typography>
                   <Chip
                     label={selectedOrder.status}
@@ -407,7 +426,7 @@ function Dispatch() {
                     size="small"
                   />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="subtitle2">Dispatch Status:</Typography>
                   <Chip
                     label={selectedOrder.dispatchStatus || 'pending'}
@@ -417,41 +436,104 @@ function Dispatch() {
                 </Grid>
               </Grid>
 
-              <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
-                Items
+              <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+                Ordered Items
               </Typography>
-              <TableContainer>
+              <TableContainer component={Paper} sx={{ mb: 3 }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell>SKU</TableCell>
-                      <TableCell>Quantity</TableCell>
-                      <TableCell>Unit Price</TableCell>
-                      <TableCell>Total</TableCell>
+                      <TableCell>Name</TableCell>
+                      <TableCell align="right">Quantity</TableCell>
+                      <TableCell align="right">Unit Price</TableCell>
+                      <TableCell align="right">Total</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {selectedOrder.items?.map((item, index) => (
                       <TableRow key={index}>
+                        <TableCell>{item.sku?.sku}</TableCell>
                         <TableCell>{item.sku?.name}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>${item.unitPrice?.toFixed(2)}</TableCell>
-                        <TableCell>${item.totalAmount?.toFixed(2)}</TableCell>
+                        <TableCell align="right">{item.quantity}</TableCell>
+                        <TableCell align="right">₹{item.unitPrice?.toFixed(2)}</TableCell>
+                        <TableCell align="right">₹{item.totalAmount?.toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </TableContainer>
+              <Typography variant="h6" align="right" sx={{ mb: 3 }}>
+                Order Total: ₹{selectedOrder.totalAmount?.toFixed(2)}
+              </Typography>
 
               <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" align="right">
-                Total: ${selectedOrder.totalAmount?.toFixed(2)}
+
+              <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                Dispatch Log
               </Typography>
+              {loadingLogs ? (
+                <Typography>Loading dispatch logs...</Typography>
+              ) : dispatchLogs.length > 0 ? (
+                <TableContainer component={Paper}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Log ID</TableCell>
+                        <TableCell>Date</TableCell>
+                        <TableCell>Dispatched By</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Items</TableCell>
+                        <TableCell>Notes</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {dispatchLogs.map((log) => (
+                        <TableRow key={log._id}>
+                          <TableCell>{log._id.slice(-6)}</TableCell>
+                          <TableCell>{new Date(log.dispatchDate || log.createdAt).toLocaleString()}</TableCell>
+                          <TableCell>{log.dispatchedBy?.name || 'N/A'}</TableCell>
+                          <TableCell>
+                            <Chip label={log.status} color={getStatusColor(log.status)} size="small" />
+                          </TableCell>
+                          <TableCell>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>SKU</TableCell>
+                                  <TableCell>Name</TableCell>
+                                  <TableCell align="right">Qty</TableCell>
+                                  <TableCell align="right">Stock Before</TableCell>
+                                  <TableCell align="right">Stock After</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {log.dispatchedItems.map(item => (
+                                  <TableRow key={item.sku?._id || item.sku}>
+                                    <TableCell>{item.sku?.sku || 'N/A'}</TableCell>
+                                    <TableCell>{item.name}</TableCell>
+                                    <TableCell align="right">{item.quantity}</TableCell>
+                                    <TableCell align="right">{item.stockBeforeDispatch}</TableCell>
+                                    <TableCell align="right">{item.stockAfterDispatch}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableCell>
+                          <TableCell>{log.notes}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <Typography>No dispatch logs found for this order.</Typography>
+              )}
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setViewDialog(false)}>Close</Button>
+          <Button onClick={() => { setViewDialog(false); setDispatchLogs([]); }}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

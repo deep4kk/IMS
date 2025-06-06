@@ -118,12 +118,12 @@ function PurchaseDashboard() {
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
+    <Box sx={{ p: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+      <Paper elevation={3} sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
           Purchase Dashboard
         </Typography>
-        <FormControl size="small" sx={{ minWidth: 120 }}>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Time Period</InputLabel>
           <Select
             value={timeFilter}
@@ -136,89 +136,38 @@ function PurchaseDashboard() {
             <MenuItem value="1year">Last Year</MenuItem>
           </Select>
         </FormControl>
-      </Box>
+      </Paper>
 
       {/* KPI Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Receipt color="primary" sx={{ mr: 2, fontSize: 40 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Total Purchase Orders
-                  </Typography>
-                  <Typography variant="h4">
-                    {dashboardData.totalPOs}
-                  </Typography>
-                </Box>
+        {[
+          { title: 'Total Purchase Orders', value: dashboardData.totalPOs, icon: <Receipt sx={{ fontSize: 40 }} />, color: 'primary.main' },
+          { title: 'Total Spent', value: `₹${dashboardData.totalSpent.toLocaleString()}`, icon: <Inventory sx={{ fontSize: 40 }} />, color: 'info.main' },
+          { title: 'Pending Receiving', value: dashboardData.pendingReceiving, icon: <LocalShipping sx={{ fontSize: 40 }} />, color: 'warning.main' },
+          { title: 'Completed POs', value: dashboardData.completedPOs, icon: <Assignment sx={{ fontSize: 40 }} />, color: 'success.main' }
+        ].map((item, index) => (
+          <Grid item xs={12} sm={6} md={3} key={index}>
+            <Card elevation={3} sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
+              <Box sx={{ color: item.color, mr: 2 }}>{item.icon}</Box>
+              <Box>
+                <Typography color="textSecondary" gutterBottom>
+                  {item.title}
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  {item.value}
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Inventory color="info" sx={{ mr: 2, fontSize: 40 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Total Spent
-                  </Typography>
-                  <Typography variant="h4">
-                    ${dashboardData.totalSpent.toLocaleString()}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <LocalShipping color="warning" sx={{ mr: 2, fontSize: 40 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Pending Receiving
-                  </Typography>
-                  <Typography variant="h4">
-                    {dashboardData.pendingReceiving}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Assignment color="success" sx={{ mr: 2, fontSize: 40 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Completed POs
-                  </Typography>
-                  <Typography variant="h4">
-                    {dashboardData.completedPOs}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
 
       <Grid container spacing={3}>
         {/* PO Status Breakdown */}
-        <Grid item xs={12} md={6}>
-          <Card>
+        <Grid item xs={12} md={6} lg={4}>
+          <Card elevation={3}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
                 Purchase Order Status
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
@@ -229,7 +178,7 @@ function PurchaseDashboard() {
                     cy="50%"
                     labelLine={false}
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    outerRadius={100}
                     fill="#8884d8"
                     dataKey="count"
                   >
@@ -238,6 +187,7 @@ function PurchaseDashboard() {
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -245,10 +195,10 @@ function PurchaseDashboard() {
         </Grid>
 
         {/* Monthly Spending Trend */}
-        <Grid item xs={12} md={6}>
-          <Card>
+        <Grid item xs={12} md={6} lg={8}>
+          <Card elevation={3}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
                 Monthly Spending Trend
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
@@ -266,17 +216,17 @@ function PurchaseDashboard() {
         </Grid>
 
         {/* Top Vendors */}
-        <Grid item xs={12} md={6}>
-          <Card>
+        <Grid item xs={12} lg={6}>
+          <Card elevation={3}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
                 Top Vendors by Spending
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={dashboardData.topVendors} layout="horizontal">
+                <BarChart data={dashboardData.topVendors} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={80} />
+                  <YAxis dataKey="name" type="category" width={100} />
                   <Tooltip />
                   <Bar dataKey="amount" fill="#82ca9d" />
                 </BarChart>
@@ -286,25 +236,25 @@ function PurchaseDashboard() {
         </Grid>
 
         {/* Recent Purchase Orders */}
-        <Grid item xs={12} md={6}>
-          <Card>
+        <Grid item xs={12} lg={6}>
+          <Card elevation={3}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
                 Recent Purchase Orders
               </Typography>
               <TableContainer>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>PO Number</TableCell>
-                      <TableCell>Vendor</TableCell>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>PO Number</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Vendor</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {dashboardData.recentPOs.slice(0, 5).map((po, index) => (
-                      <TableRow key={po._id || index}>
+                      <TableRow key={po._id || index} hover>
                         <TableCell>{po.poNumber || `PO-${1000 + index}`}</TableCell>
                         <TableCell>{po.vendor?.name || 'Vendor Name'}</TableCell>
                         <TableCell>

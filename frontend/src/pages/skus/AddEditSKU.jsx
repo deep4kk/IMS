@@ -414,7 +414,7 @@ function AddEditSKU() {
                 error={formik.touched.costPrice && Boolean(formik.errors.costPrice)}
                 helperText={formik.touched.costPrice && formik.errors.costPrice}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                 }}
               />
             </Grid>
@@ -433,7 +433,7 @@ function AddEditSKU() {
                 error={formik.touched.sellingPrice && Boolean(formik.errors.sellingPrice)}
                 helperText={formik.touched.sellingPrice && formik.errors.sellingPrice}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                 }}
               />
             </Grid>

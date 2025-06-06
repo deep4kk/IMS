@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const purchaseIndentApprovalSchema = new mongoose.Schema({
   indent: { // Reference to the original PurchaseIndent document
@@ -7,7 +7,7 @@ const purchaseIndentApprovalSchema = new mongoose.Schema({
     required: true,
   },
   indentId: { // The indentId from the original PurchaseIndent
-    type: Number,
+    type: String,
     required: true,
   },
   items: [
@@ -34,4 +34,4 @@ const purchaseIndentApprovalSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-module.exports = mongoose.model('PurchaseIndentApproval', purchaseIndentApprovalSchema);
+export default mongoose.model('PurchaseIndentApproval', purchaseIndentApprovalSchema);

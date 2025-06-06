@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const purchaseOrderSchema = new mongoose.Schema({
   poNumber: { // Auto-incrementing PO number
@@ -69,4 +69,4 @@ purchaseOrderSchema.pre('save', async function(next) {
   next();
 });
 
-module.exports = mongoose.model('PurchaseOrder', purchaseOrderSchema);
+export default mongoose.model('PurchaseOrder', purchaseOrderSchema);

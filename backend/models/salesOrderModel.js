@@ -1,7 +1,6 @@
-
 import mongoose from 'mongoose';
 
-const salesOrderItemSchema = mongoose.Schema({
+const salesOrderItemSchema = new mongoose.Schema({
   sku: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SKU',
@@ -33,11 +32,11 @@ const salesOrderItemSchema = mongoose.Schema({
   }
 });
 
-const salesOrderSchema = mongoose.Schema({
+const salesOrderSchema = new mongoose.Schema({
   orderNumber: {
     type: String,
-    required: true,
-    unique: true
+    unique: true,
+    required: true
   },
   customer: {
     type: mongoose.Schema.Types.ObjectId,
@@ -51,6 +50,22 @@ const salesOrderSchema = mongoose.Schema({
   expectedDeliveryDate: {
     type: Date,
     required: true
+  },
+  expectedShipmentDate: {
+    type: Date,
+    required: false
+  },
+  deliveryMethod: {
+    type: String,
+    required: false
+  },
+  salesPerson: {
+    type: String,
+    required: false
+  },
+  dispatchDate: {
+    type: Date,
+    default: null
   },
   items: [salesOrderItemSchema],
   subtotal: {
@@ -72,7 +87,7 @@ const salesOrderSchema = mongoose.Schema({
   status: {
     type: String,
     enum: ['draft', 'confirmed', 'pending_dispatch', 'dispatched', 'delivered', 'cancelled', 'returned'],
-    default: 'pending_dispatch'
+    default: 'draft'
   },
   dispatchStatus: {
     type: String,
@@ -123,10 +138,17 @@ const salesOrderSchema = mongoose.Schema({
 
 // Generate order number
 salesOrderSchema.pre('save', async function (next) {
-  if (!this.orderNumber) {
+  if (this.isNew) {
     const lastOrder = await this.constructor.findOne({}, {}, { sort: { 'createdAt': -1 } });
-    const lastNumber = lastOrder ? parseInt(lastOrder.orderNumber.split('-')[1]) : 0;
-    this.orderNumber = `SO-${String(lastNumber + 1).padStart(6, '0')}`;
+    let lastOrderNumber = 0;
+    if (lastOrder && lastOrder.orderNumber) {
+      const match = lastOrder.orderNumber.match(/SO-(\d+)/);
+      if (match) {
+        lastOrderNumber = parseInt(match[1], 10);
+      }
+    }
+    const newOrderNumber = lastOrderNumber + 1;
+    this.orderNumber = `SO-${String(newOrderNumber).padStart(3, '0')}`;
   }
   next();
 });

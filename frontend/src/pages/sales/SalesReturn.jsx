@@ -231,7 +231,7 @@ function SalesReturn() {
                   <TableCell>
                     {actionTypes.find(a => a.value === returnItem.actionRequired)?.label || returnItem.actionRequired}
                   </TableCell>
-                  <TableCell>${returnItem.totalAmount?.toFixed(2)}</TableCell>
+                  <TableCell>₹{returnItem.totalAmount?.toFixed(2)}</TableCell>
                   <TableCell>
                     <Chip
                       label={returnItem.status}
@@ -367,12 +367,12 @@ function SalesReturn() {
                           </Grid>
                           <Grid item xs={6} md={2}>
                             <Typography variant="body2">
-                              Unit: ${item.unitPrice?.toFixed(2)}
+                              Unit: ₹{item.unitPrice?.toFixed(2)}
                             </Typography>
                           </Grid>
                           <Grid item xs={6} md={2}>
                             <Typography variant="body2">
-                              Total: ${item.totalAmount?.toFixed(2)}
+                              Total: ₹{item.totalAmount?.toFixed(2)}
                             </Typography>
                           </Grid>
                         </Grid>
@@ -382,7 +382,7 @@ function SalesReturn() {
                   
                   <Box sx={{ textAlign: 'right', mt: 2 }}>
                     <Typography variant="h6">
-                      Total Return Amount: ${calculateTotalAmount().toFixed(2)}
+                      Total Return Amount: ₹{calculateTotalAmount().toFixed(2)}
                     </Typography>
                   </Box>
                 </Grid>

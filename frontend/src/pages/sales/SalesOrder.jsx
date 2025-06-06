@@ -36,7 +36,8 @@ import {
   Delete as DeleteIcon,
   Visibility as ViewIcon,
   FilterList as FilterIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  PictureAsPdf as PdfIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -46,7 +47,7 @@ import axios from 'axios';
 
 function SalesOrder() {
   const [orders, setOrders] = useState([]);
-  const [customers, setCustomers] = useState([]);
+  const [allCustomersForFilter, setAllCustomersForFilter] = useState([]); // For the main filter
   const [skus, setSkus] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -61,24 +62,34 @@ function SalesOrder() {
   // Form states
   const [formData, setFormData] = useState({
     customer: null,
-    expectedDeliveryDate: new Date(),
+    customerName: '',
+    customerPhone: '',
+    shippingAddress: {},
+    billingAddress: {},
+    orderDate: new Date(),
+    expectedShipmentDate: new Date(),
+    deliveryMethod: '',
+    salesPerson: '',
     items: [{ sku: null, quantity: 1, unitPrice: 0, discount: 0, tax: 0 }],
     notes: ''
   });
+  const [salesPeople, setSalesPeople] = useState(['John Doe', 'Jane Smith']); // Mock data
+  const [newSalesPerson, setNewSalesPerson] = useState('');
+  const [addSalesPersonMode, setAddSalesPersonMode] = useState(false);
   
   // Filter states
   const [filters, setFilters] = useState({
     status: '',
-    customer: '',
+    customer: '', // customerId for filter
     startDate: null,
     endDate: null
   });
 
-  const { showSuccess, showError } = useAlert();
+  const { showAlert } = useAlert(); // Assuming showAlert is the correct method from context
 
   useEffect(() => {
     fetchOrders();
-    fetchCustomers();
+    fetchAllCustomersForFilter(); // Fetch all customers for the main page filter
     fetchSKUs();
   }, [page, rowsPerPage, filters]);
 
@@ -95,58 +106,88 @@ function SalesOrder() {
       setOrders(response.data.salesOrders);
       setTotalOrders(response.data.totalOrders);
     } catch (error) {
-      showError('Failed to fetch sales orders');
+      showAlert('error', 'Failed to fetch sales orders');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchCustomers = async () => {
+  const fetchAllCustomersForFilter = async () => { // Renamed to avoid confusion
     try {
-      const response = await axios.get('/api/customers');
-      setCustomers(response.data.customers || response.data);
+      const response = await axios.get('/api/customers'); // Gets all active customers
+      setAllCustomersForFilter(response.data || []);
     } catch (error) {
-      showError('Failed to fetch customers');
+      showAlert('error', 'Failed to fetch customers for filter');
     }
   };
+
+
 
   const fetchSKUs = async () => {
     try {
       const response = await axios.get('/api/skus');
       setSkus(response.data.skus || response.data);
     } catch (error) {
-      showError('Failed to fetch SKUs');
+      showAlert('error', 'Failed to fetch SKUs');
     }
   };
 
   const handleCreateOrder = async () => {
+    if (!formData.customer || !formData.customer._id) {
+      showAlert('error', 'Please select a customer.');
+      return;
+    }
     try {
       const orderData = {
-        ...formData,
         customer: formData.customer?._id,
+        orderDate: formData.orderDate,
+        expectedDeliveryDate: formData.expectedShipmentDate,
+        deliveryMethod: formData.deliveryMethod,
+        salesPerson: formData.salesPerson,
         items: formData.items.map(item => ({
-          ...item,
-          sku: item.sku?._id
-        }))
+          sku: item.sku?._id,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount: item.discount,
+          tax: item.tax,
+          totalAmount: (item.quantity * item.unitPrice) - item.discount + item.tax
+        })),
+        notes: formData.notes,
+        shippingAddress: formData.shippingAddress,
+        billingAddress: formData.billingAddress
       };
 
+      // Validate required fields before sending
+      if (!formData.customer?._id) {
+        showAlert('error', 'Please select a customer');
+        return;
+      }
+      if (!formData.items || formData.items.length === 0) {
+        showAlert('error', 'Please add at least one item');
+        return;
+      }
+      if (formData.items.some(item => !item.sku?._id)) {
+        showAlert('error', 'Please select SKU for all items');
+        return;
+      }
+
       await axios.post('/api/sales-orders', orderData);
-      showSuccess('Sales order created successfully');
+      showAlert('success', 'Sales order created successfully');
       setDialogOpen(false);
       resetForm();
       fetchOrders();
     } catch (error) {
-      showError(error.response?.data?.message || 'Failed to create sales order');
+      showAlert('error', error.response?.data?.message || 'Failed to create sales order');
     }
   };
 
   const handleUpdateOrderStatus = async (orderId, status) => {
     try {
       await axios.put(`/api/sales-orders/${orderId}`, { status });
-      showSuccess('Order status updated successfully');
+      showAlert('success', 'Order status updated successfully');
       fetchOrders();
     } catch (error) {
-      showError('Failed to update order status');
+      showAlert('error', 'Failed to update order status');
     }
   };
 
@@ -154,18 +195,44 @@ function SalesOrder() {
     if (window.confirm('Are you sure you want to delete this sales order?')) {
       try {
         await axios.delete(`/api/sales-orders/${orderId}`);
-        showSuccess('Sales order deleted successfully');
+        showAlert('success', 'Sales order deleted successfully');
         fetchOrders();
       } catch (error) {
-        showError('Failed to delete sales order');
+        showAlert('error', 'Failed to delete sales order');
       }
+    }
+  };
+
+  const handleExportPdf = async (orderId) => {
+    try {
+      const response = await axios.get(`/api/sales-orders/export/pdf/${orderId}`, {
+        responseType: 'blob', // Important for handling file downloads
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `SalesOrder_${orderId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showAlert('success', 'PDF exported successfully!');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      showAlert('error', 'Failed to export PDF.');
     }
   };
 
   const resetForm = () => {
     setFormData({
       customer: null,
-      expectedDeliveryDate: new Date(),
+      customerName: '',
+      customerPhone: '',
+      shippingAddress: {},
+      billingAddress: {},
+      orderDate: new Date(),
+      expectedShipmentDate: new Date(),
+      deliveryMethod: '',
+      salesPerson: '',
       items: [{ sku: null, quantity: 1, unitPrice: 0, discount: 0, tax: 0 }],
       notes: ''
     });
@@ -216,9 +283,9 @@ function SalesOrder() {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" component="h1">
+      <Box sx={{ p: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+        <Paper elevation={3} sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
             Sales Orders
           </Typography>
           <Button
@@ -228,10 +295,10 @@ function SalesOrder() {
           >
             Create Order
           </Button>
-        </Box>
+        </Paper>
 
         {/* Filters */}
-        <Paper sx={{ p: 2, mb: 3 }}>
+        <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={3}>
               <FormControl fullWidth size="small">
@@ -254,9 +321,9 @@ function SalesOrder() {
             <Grid item xs={12} md={3}>
               <Autocomplete
                 size="small"
-                options={customers}
+                options={allCustomersForFilter} // Use allCustomersForFilter here
                 getOptionLabel={(option) => option.name || ''}
-                value={customers.find(c => c._id === filters.customer) || null}
+                value={allCustomersForFilter.find(c => c._id === filters.customer) || null}
                 onChange={(_, value) => setFilters(prev => ({ ...prev, customer: value?._id || '' }))}
                 renderInput={(params) => (
                   <TextField {...params} label="Customer" />
@@ -292,22 +359,22 @@ function SalesOrder() {
         </Paper>
 
         {/* Orders Table */}
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} elevation={3}>
           <Table>
-            <TableHead>
+            <TableHead sx={{ backgroundColor: 'primary.main' }}>
               <TableRow>
-                <TableCell>Order Number</TableCell>
-                <TableCell>Customer</TableCell>
-                <TableCell>Order Date</TableCell>
-                <TableCell>Delivery Date</TableCell>
-                <TableCell>Total Amount</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Order Number</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Customer</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Order Date</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Delivery Date</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Total Amount</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {orders.map((order) => (
-                <TableRow key={order._id}>
+                <TableRow key={order._id} hover sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f9f9f9' } }}>
                   <TableCell>{order.orderNumber}</TableCell>
                   <TableCell>{order.customer?.name}</TableCell>
                   <TableCell>
@@ -316,7 +383,7 @@ function SalesOrder() {
                   <TableCell>
                     {new Date(order.expectedDeliveryDate).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
+                  <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
                   <TableCell>
                     <Chip
                       label={order.status}
@@ -370,6 +437,13 @@ function SalesOrder() {
                         Confirm
                       </Button>
                     )}
+                     <IconButton
+                      size="small"
+                      onClick={() => handleExportPdf(order._id)}
+                      color="secondary"
+                    >
+                      <PdfIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -400,28 +474,154 @@ function SalesOrder() {
           fullWidth
         >
           <DialogTitle>
-            {selectedOrder ? 'Edit Sales Order' : 'Create Sales Order'}
+            {selectedOrder ? `Edit Sales Order - ${selectedOrder.orderNumber}` : 'Create Sales Order'}
           </DialogTitle>
           <DialogContent>
-            <Grid container spacing={3} sx={{ mt: 1 }}>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              {/* Row 1: Customer and Sales Order # */}
+              <Grid item xs={12} md={8}>
+                <FormControl fullWidth size="small" required>
+                  <InputLabel>Customer</InputLabel>
+                  <Select
+                    label="Customer"
+                    value={formData.customer?._id || ''}
+                    onChange={(e) => {
+                      const customerId = e.target.value;
+                      const selectedCustomer = allCustomersForFilter.find(c => c._id === customerId);
+                      setFormData(prev => ({
+                        ...prev,
+                        customer: selectedCustomer,
+                        customerName: selectedCustomer ? selectedCustomer.name : '',
+                        customerPhone: selectedCustomer ? selectedCustomer.phone : '',
+                        shippingAddress: selectedCustomer?.shippingAddress || selectedCustomer?.address || {},
+                        billingAddress: selectedCustomer?.billingAddress || selectedCustomer?.address || {},
+                      }));
+                    }}
+                  >
+                    <MenuItem value="">
+                      <em>Select a customer</em>
+                    </MenuItem>
+                    {allCustomersForFilter.map((customer) => (
+                      <MenuItem key={customer._id} value={customer._id}>
+                        {customer.name} ({customer.customerCode || 'N/A'})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label="Sales Order #"
+                  value={selectedOrder ? selectedOrder.orderNumber : 'SO-0017'} // Example
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                  size="small"
+                  variant="filled"
+                />
+              </Grid>
+
+              {/* Row 2: Mobile and Address */}
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label="Mobile"
+                  value={formData.customerPhone}
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                  size="small"
+                  variant="filled"
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label="Billing Address"
+                  value={`${formData.billingAddress?.street || ''}, ${formData.billingAddress?.city || ''}`}
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                  size="small"
+                  variant="filled"
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  label="Shipping Address"
+                  value={`${formData.shippingAddress?.street || ''}, ${formData.shippingAddress?.city || ''}`}
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                  size="small"
+                  variant="filled"
+                />
+              </Grid>
+
+              {/* Row 3: Dates */}
               <Grid item xs={12} md={6}>
-                <Autocomplete
-                  options={customers}
-                  getOptionLabel={(option) => option.name || ''}
-                  value={formData.customer}
-                  onChange={(_, value) => setFormData(prev => ({ ...prev, customer: value }))}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Customer" required fullWidth />
-                  )}
+                <DatePicker
+                  label="Sales Order Date"
+                  value={formData.orderDate}
+                  onChange={(date) => setFormData(prev => ({ ...prev, orderDate: date }))}
+                  renderInput={(params) => <TextField {...params} fullWidth size="small" />}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
                 <DatePicker
-                  label="Expected Delivery Date"
-                  value={formData.expectedDeliveryDate}
-                  onChange={(date) => setFormData(prev => ({ ...prev, expectedDeliveryDate: date }))}
-                  renderInput={(params) => <TextField {...params} required fullWidth />}
+                  label="Expected Shipment Date"
+                  value={formData.expectedShipmentDate}
+                  onChange={(date) => setFormData(prev => ({ ...prev, expectedShipmentDate: date }))}
+                  renderInput={(params) => <TextField {...params} fullWidth size="small" />}
                 />
+              </Grid>
+
+              {/* Row 4: Delivery Method and Sales Person */}
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  label="Delivery Method"
+                  value={formData.deliveryMethod}
+                  onChange={(e) => setFormData(prev => ({ ...prev, deliveryMethod: e.target.value }))}
+                  fullWidth
+                  size="small"
+                >
+                  <MenuItem value="standard">Standard Shipping</MenuItem>
+                  <MenuItem value="express">Express Shipping</MenuItem>
+                  <MenuItem value="pickup">Customer Pickup</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                {addSalesPersonMode ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <TextField
+                      label="New Sales Person"
+                      value={newSalesPerson}
+                      onChange={(e) => setNewSalesPerson(e.target.value)}
+                      size="small"
+                      fullWidth
+                    />
+                    <Button onClick={() => {
+                      if (newSalesPerson) {
+                        setSalesPeople(prev => [...prev, newSalesPerson]);
+                        setFormData(prev => ({ ...prev, salesPerson: newSalesPerson }));
+                        setNewSalesPerson('');
+                        setAddSalesPersonMode(false);
+                      }
+                    }}>Add</Button>
+                    <Button onClick={() => setAddSalesPersonMode(false)}>Cancel</Button>
+                  </Box>
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <TextField
+                      select
+                      label="Sales Person"
+                      value={formData.salesPerson}
+                      onChange={(e) => setFormData(prev => ({ ...prev, salesPerson: e.target.value }))}
+                      fullWidth
+                      size="small"
+                    >
+                      {salesPeople.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+                    </TextField>
+                    <IconButton onClick={() => setAddSalesPersonMode(true)} color="primary">
+                      <AddIcon />
+                    </IconButton>
+                  </Box>
+                )}
               </Grid>
               
               {/* Items Section */}
@@ -446,6 +646,11 @@ function SalesOrder() {
                               <TextField {...params} label="SKU" size="small" />
                             )}
                           />
+                        </Grid>
+                        <Grid item xs={6} md={1.5}>
+                          <Typography variant="body2">
+                            Stock: {item.sku ? item.sku.quantityInStock : '-'}
+                          </Typography>
                         </Grid>
                         <Grid item xs={6} md={1.5}>
                           <TextField
@@ -490,7 +695,7 @@ function SalesOrder() {
                         <Grid item xs={12} md={2}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography variant="body2">
-                              Total: ${((item.quantity * item.unitPrice) - item.discount + item.tax).toFixed(2)}
+                              Total: ₹{((item.quantity * item.unitPrice) - item.discount + item.tax).toFixed(2)}
                             </Typography>
                             {formData.items.length > 1 && (
                               <IconButton
@@ -519,7 +724,7 @@ function SalesOrder() {
                 
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="h6" align="right">
-                  Total Amount: ${calculateTotal().toFixed(2)}
+                  Total Amount: ₹{calculateTotal().toFixed(2)}
                 </Typography>
               </Grid>
               
@@ -552,44 +757,50 @@ function SalesOrder() {
         <Dialog
           open={viewDialog}
           onClose={() => setViewDialog(false)}
-          maxWidth="md"
+          maxWidth="lg"
           fullWidth
         >
-          <DialogTitle>Order Details</DialogTitle>
+          <DialogTitle>Order Details - {selectedOrder?.orderNumber}</DialogTitle>
           <DialogContent>
             {selectedOrder && (
               <Box>
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2">Order Number:</Typography>
-                    <Typography variant="body1">{selectedOrder.orderNumber}</Typography>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Customer</Typography>
+                    <Typography>{selectedOrder.customer?.name}</Typography>
                   </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2">Customer:</Typography>
-                    <Typography variant="body1">{selectedOrder.customer?.name}</Typography>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Order Date</Typography>
+                    <Typography>{new Date(selectedOrder.orderDate).toLocaleDateString()}</Typography>
                   </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2">Order Date:</Typography>
-                    <Typography variant="body1">
-                      {new Date(selectedOrder.orderDate).toLocaleDateString()}
-                    </Typography>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Expected Delivery Date</Typography>
+                    <Typography>{new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString()}</Typography>
                   </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2">Expected Delivery:</Typography>
-                    <Typography variant="body1">
-                      {new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString()}
-                    </Typography>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Status</Typography>
+                    <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Billing Address</Typography>
+                    <Typography>{`${selectedOrder.billingAddress?.street}, ${selectedOrder.billingAddress?.city}, ${selectedOrder.billingAddress?.state} - ${selectedOrder.billingAddress?.pincode}`}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Shipping Address</Typography>
+                    <Typography>{`${selectedOrder.shippingAddress?.street}, ${selectedOrder.shippingAddress?.city}, ${selectedOrder.shippingAddress?.state} - ${selectedOrder.shippingAddress?.pincode}`}</Typography>
                   </Grid>
                 </Grid>
-                
-                <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Items</Typography>
-                <TableContainer>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="h6" sx={{ mb: 1 }}>Items</Typography>
+                <TableContainer component={Paper}>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
                         <TableCell>SKU</TableCell>
                         <TableCell>Quantity</TableCell>
                         <TableCell>Unit Price</TableCell>
+                        <TableCell>Discount</TableCell>
+                        <TableCell>Tax</TableCell>
                         <TableCell>Total</TableCell>
                       </TableRow>
                     </TableHead>
@@ -598,17 +809,18 @@ function SalesOrder() {
                         <TableRow key={index}>
                           <TableCell>{item.sku?.name}</TableCell>
                           <TableCell>{item.quantity}</TableCell>
-                          <TableCell>${item.unitPrice.toFixed(2)}</TableCell>
-                          <TableCell>${item.totalAmount.toFixed(2)}</TableCell>
+                          <TableCell>₹{item.unitPrice.toFixed(2)}</TableCell>
+                          <TableCell>₹{item.discount.toFixed(2)}</TableCell>
+                          <TableCell>₹{item.tax.toFixed(2)}</TableCell>
+                          <TableCell>₹{item.totalAmount.toFixed(2)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </TableContainer>
-                
                 <Box sx={{ mt: 2, textAlign: 'right' }}>
                   <Typography variant="h6">
-                    Total: ${selectedOrder.totalAmount?.toFixed(2)}
+                    Grand Total: ₹{selectedOrder.totalAmount?.toFixed(2)}
                   </Typography>
                 </Box>
               </Box>

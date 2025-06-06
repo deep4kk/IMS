@@ -27,8 +27,10 @@ import SupplierDetail from './pages/suppliers/SupplierDetail';
 import Indent from './pages/purchase/Indent';
 import IndentApproval from './pages/purchase/IndentApproval';
 import PO from './pages/purchase/PO';
+import PurchaseOrderMaster from './pages/purchase/PurchaseOrderMaster'; // Added
 import CreditDebitNote from './pages/purchase/CreditDebitNote';
 import SalesOrder from './pages/sales/SalesOrder';
+import SalesOrderMaster from './pages/sales/SalesOrderMaster'; // Added
 import Invoice from './pages/sales/Invoice';
 import SalesDebitNote from './pages/sales/SalesDebitNote';
 import Customers from './pages/customers/Customers';
@@ -94,9 +96,10 @@ function App() {
         <Route path="purchase/indent" element={<Indent />} />
         <Route path="purchase/indent-approval" element={<IndentApproval />} />
         <Route path="purchase/po" element={<PO />} />
+        <Route path="purchase/master" element={<PurchaseOrderMaster />} /> {/* Added */}
         <Route path="purchase/credit-debit-note" element={<CreditDebitNote />} />
         {/* Sales Workflow */}
-
+        <Route path="sales/master" element={<SalesOrderMaster />} /> {/* Added */}
           <Route path="/sales/dashboard" element={<SalesDashboard />} />
           <Route path="/sales/orders" element={<SalesOrder />} />
           <Route path="/sales/dispatch" element={<Dispatch />} />

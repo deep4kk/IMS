@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const PurchaseOrder = require('../models/purchaseOrderModel');
-const PurchaseIndentApproval = require('../models/purchaseIndentApprovalModel');
-const mongoose = require('mongoose'); // Required for ObjectId validation
+import PurchaseOrder from '../models/purchaseOrderModel.js';
+import PurchaseIndentApproval from '../models/purchaseIndentApprovalModel.js';
+import mongoose from 'mongoose'; // Required for ObjectId validation
 
 // Helper function to validate ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -158,4 +158,4 @@ router.put('/:id/stock-in', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

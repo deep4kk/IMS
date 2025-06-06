@@ -146,7 +146,7 @@ function SalesDashboard() {
                     Total Revenue
                   </Typography>
                   <Typography variant="h4">
-                    ${dashboardData.totalRevenue.toLocaleString()}
+                    ₹{dashboardData.totalRevenue.toLocaleString()}
                   </Typography>
                 </Box>
               </Box>
@@ -269,7 +269,7 @@ function SalesDashboard() {
                         <TableCell>
                           {new Date(order.orderDate).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>${order.totalAmount?.toFixed(2)}</TableCell>
+                        <TableCell>₹{order.totalAmount?.toFixed(2)}</TableCell>
                         <TableCell>
                           <Chip
                             label={order.status}

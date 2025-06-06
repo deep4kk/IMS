@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
-  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Select, MenuItem, CircularProgress, TextField, Tabs, Tab
+  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Select, MenuItem, CircularProgress, TextField, Tabs, Tab, Alert, AlertTitle
 } from '@mui/material';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable'; // Correct import for autoTable
@@ -241,93 +241,115 @@ YourCompany Purchase Team`; // Replace YourCompany
 
   // --- Now the return statement ---
   return (
-    <Box>
-      <Typography variant="h5" sx={{ mb: 2 }}>Create Purchase Order</Typography>
+    <Box sx={{ p: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+      <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+          Create Purchase Order
+        </Typography>
+      </Paper>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         <Tab label="Create PO" />
         <Tab label="Pending for PO" />
       </Tabs>
       {tab === 0 && (
         <Box>
-          <Select
-            value={selectedVendor}
-            onChange={handleVendorSelect}
-            displayEmpty
-            sx={{ minWidth: 220, mb: 2 }}
-          >
-            <MenuItem value="" disabled>Please Mention the Vendor Name 👉</MenuItem>
-            {vendors.map(v => (
-              <MenuItem key={v._id} value={v._id}>{v.name}</MenuItem>
-            ))}
-          </Select>
-          {selectedVendorObj && (
-            <Box sx={{ mb: 2, p: 2, bgcolor: '#ffeaea', borderRadius: 1 }}>
-              <Typography>Vendor's Address 👉 {selectedVendorObj.address ? `${selectedVendorObj.address.street}, ${selectedVendorObj.address.city}, ${selectedVendorObj.address.state} - ${selectedVendorObj.address.pincode}` : '-'}</Typography>
-              <Typography>Vendor's Number 👉 {selectedVendorObj.phone || '-'}</Typography>
-              <Typography>Vendor's Email 👉 {selectedVendorObj.email || '-'}</Typography>
-              <Typography>GSTIN 👉 {selectedVendorObj.gstin || '-'}</Typography>
+          <Paper elevation={3} sx={{ p: 3, mb: 3, bgcolor: 'white' }}>
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.dark' }}>PO Details</Typography>
+            <Select
+              value={selectedVendor}
+              onChange={handleVendorSelect}
+              displayEmpty
+              fullWidth
+              sx={{ mb: 2 }}
+              size="small"
+            >
+              <MenuItem value="" disabled>Select Vendor</MenuItem>
+              {vendors.map(v => (
+                <MenuItem key={v._id} value={v._id}>{v.name}</MenuItem>
+              ))}
+            </Select>
+            {selectedVendorObj && (
+              <Box sx={{ mb: 2, p: 2, bgcolor: 'primary.light', borderRadius: 1, border: '1px solid #e0e0e0' }}>
+                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>Vendor Details:</Typography>
+                <Typography variant="body2">Address: {selectedVendorObj.address ? `${selectedVendorObj.address.street}, ${selectedVendorObj.address.city}, ${selectedVendorObj.address.state} - ${selectedVendorObj.address.pincode}` : '-'}</Typography>
+                <Typography variant="body2">Phone: {selectedVendorObj.phone || '-'}</Typography>
+                <Typography variant="body2">Email: {selectedVendorObj.email || '-'}</Typography>
+                <Typography variant="body2">GSTIN: {selectedVendorObj.gstin || '-'}</Typography>
+              </Box>
+            )}
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+              <TextField
+                label="Delivery Due Date"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                value={form.deliveryDueDate}
+                onChange={e => handleFormChange('deliveryDueDate', e.target.value)}
+                sx={{ minWidth: 220 }}
+                size="small"
+                required
+              />
+              <TextField
+                label="Payment Days"
+                value={form.paymentDays}
+                onChange={e => handleFormChange('paymentDays', e.target.value)}
+                sx={{ minWidth: 220 }}
+                size="small"
+              />
+              <TextField
+                label="Freight Terms/Cost"
+                value={form.freight}
+                onChange={e => handleFormChange('freight', e.target.value)}
+                sx={{ minWidth: 220 }}
+                size="small"
+              />
             </Box>
-          )}
-          <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-            <TextField
-              label="Delivery Due Date"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={form.deliveryDueDate}
-              onChange={e => handleFormChange('deliveryDueDate', e.target.value)}
-              sx={{ minWidth: 220 }}
-              required
-            />
-            <TextField
-              label="Payment Days"
-              value={form.paymentDays}
-              onChange={e => handleFormChange('paymentDays', e.target.value)}
-              sx={{ minWidth: 220 }}
-            />
-            <TextField
-              label="Freight Terms/Cost"
-              value={form.freight}
-              onChange={e => handleFormChange('freight', e.target.value)}
-              sx={{ minWidth: 220 }}
-            />
-          </Box>
+          </Paper>
+
           {/* Show items for this vendor from pending indents */}
-          <Typography variant="subtitle1" sx={{ mt: 2 }}>Approved Items for PO</Typography>
+          <Typography variant="h6" sx={{ mt: 2, mb: 1, color: 'primary.dark' }}>Approved Items for PO</Typography>
           {loadingPoItems ? <CircularProgress /> : (
             poItemsForVendor.length > 0 ? (
-              <TableContainer component={Paper} sx={{ mt: 1 }}>
+              <TableContainer component={Paper} elevation={3} sx={{ mt: 1 }}>
                 <Table size="small">
-                  <TableHead>
+                  <TableHead sx={{ bgcolor: 'primary.main' }}>
                     <TableRow>
-                      <TableCell>SKU Name</TableCell>
-                      <TableCell>SKU Code</TableCell>
-                      <TableCell>Quantity</TableCell>
-                      <TableCell>Indent ID</TableCell>
-                      {/* <TableCell>Approval ID</TableCell> */}
+                      <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>SKU Name</TableCell>
+                      <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>SKU Code</TableCell>
+                      <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Quantity</TableCell>
+                      <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Indent ID</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {poItemsForVendor.map((item, idx) => (
-                      <TableRow key={item._id || idx}> {/* item._id is from approval item */}
+                      <TableRow key={item._id || idx} sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f9f9f9' } }}>
                         <TableCell>{item.sku?.name || 'N/A'}</TableCell>
                         <TableCell>{item.sku?.sku || item.sku?.skuCode || 'N/A'}</TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell>{item.indentId}</TableCell>
-                        {/* <TableCell>{item.indentApprovalId}</TableCell> */}
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </TableContainer>
-            ) : <Typography>{selectedVendor ? 'No approved items pending PO for this vendor.' : 'Please select a vendor to see items.'}</Typography>
+            ) : <Typography sx={{ color: 'text.secondary', fontStyle: 'italic', mt: 2 }}>{selectedVendor ? 'No approved items pending PO for this vendor.' : 'Please select a vendor to see items.'}</Typography>
           )}
 
-          {poCreationError && <Typography color="error" sx={{ mt: 2 }}>Error: {poCreationError}</Typography>}
-          {poSuccessMessage && <Typography color="success.main" sx={{ mt: 2 }}>{poSuccessMessage}</Typography>}
+          {poCreationError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              <AlertTitle>Error</AlertTitle>
+              {poCreationError}
+            </Alert>
+          )}
+          {poSuccessMessage && (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              <AlertTitle>Success</AlertTitle>
+              {poSuccessMessage}
+            </Alert>
+          )}
 
           <Button
             variant="contained"
-            sx={{ mt: 2 }}
+            sx={{ mt: 3, fontWeight: 'bold' }}
             onClick={handleGeneratePO}
             disabled={
               !selectedVendor ||
@@ -341,10 +363,10 @@ YourCompany Purchase Team`; // Replace YourCompany
           </Button>
 
           {createdPoDetails && selectedVendorObj && (
-            <Box sx={{ mt: 2, p: 2, border: '1px solid lightgray', borderRadius: 1 }}>
-              <Typography variant="h6" color="success.main">PO #{createdPoDetails.poNumber} Created!</Typography>
+            <Paper elevation={3} sx={{ mt: 3, p: 2, backgroundColor: '#e8f5e9' }}>
+              <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>PO #{createdPoDetails.poNumber} Created!</Typography>
               <Typography variant="body1" sx={{ mt: 0.5 }}>Status: {createdPoDetails.status}</Typography>
-              <Typography variant="body1" sx={{ mt: 0.5, mb: 1 }}>Stock-In Status: {createdPoDetails.stockInStatus}</Typography>
+              <Typography variant="body1" sx={{ mt: 0.5, mb: 2 }}>Stock-In Status: {createdPoDetails.stockInStatus}</Typography>
               <Button onClick={() => handleExportPDF(createdPoDetails, selectedVendorObj, poItemsForVendor)} sx={{ mr: 1 }} variant="outlined">Export PDF</Button>
               <Button onClick={() => handleEmailToVendor(createdPoDetails, selectedVendorObj)} variant="outlined" sx={{ mr: 1 }}>Email to Vendor</Button>
               {createdPoDetails.stockInStatus !== 'Stocked In' && (
@@ -358,28 +380,28 @@ YourCompany Purchase Team`; // Replace YourCompany
                   {isMarkingStockIn ? <CircularProgress size={24} /> : "Mark as Stocked In"}
                 </Button>
               )}
-            </Box>
+            </Paper>
           )}
         </Box>
       )}
       {tab === 1 && ( // "Pending for PO" Tab
-        <Box>
-          <Typography variant="h6">Indents Pending PO Creation</Typography>
+        <Paper elevation={3} sx={{ p: 2 }}>
+          <Typography variant="h6" sx={{ color: 'primary.dark' }}>Indents Pending PO Creation</Typography>
           {loading ? <CircularProgress /> : (
-            pendingIndentsForTab.length === 0 ? <Typography>No indents are currently pending PO creation.</Typography> : (
+            pendingIndentsForTab.length === 0 ? <Typography sx={{ fontStyle: 'italic', mt: 2 }}>No indents are currently pending PO creation.</Typography> : (
               <TableContainer component={Paper} sx={{ mt: 2 }}>
                 <Table size="small">
-                  <TableHead>
+                  <TableHead sx={{ backgroundColor: 'primary.main' }}>
                     <TableRow>
-                      <TableCell>Indent ID</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Created</TableCell>
-                      <TableCell>Items</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Indent ID</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Created</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Items</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {pendingIndentsForTab.map(indent => (
-                      <TableRow key={indent._id}>
+                      <TableRow key={indent._id} sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f9f9f9' } }}>
                         <TableCell>{indent.indentId || indent._id}</TableCell> {/* Use indent.indentId if available (from schema) */}
                         <TableCell>{indent.status}</TableCell>
                         <TableCell>{new Date(indent.createdAt).toLocaleString()}</TableCell>
@@ -403,7 +425,7 @@ YourCompany Purchase Team`; // Replace YourCompany
               </TableContainer>
             )
           )}
-        </Box>
+        </Paper>
       )}
       {error && !poCreationError && <Typography color="error" sx={{mt:1}}>{error}</Typography>} {/* Show general error if no specific PO creation error */}
     </Box>

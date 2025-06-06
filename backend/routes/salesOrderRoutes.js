@@ -1,4 +1,3 @@
-
 import express from 'express';
 import {
   createSalesOrder,
@@ -6,9 +5,10 @@ import {
   getSalesOrderById,
   updateSalesOrder,
   deleteSalesOrder,
-  getSalesOrderStats
+  getSalesOrderStats,
+  exportOrderToPdf
 } from '../controllers/salesOrderController.js';
-import { dispatchOrder } from '../controllers/dispatchController.js';
+import { dispatchOrder, getDispatchLogsByOrderId } from '../controllers/dispatchController.js';
 import { protect, manager } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -20,6 +20,8 @@ router.route('/')
 router.route('/stats')
   .get(protect, getSalesOrderStats);
 
+router.route('/export/pdf/:id').get(protect, exportOrderToPdf);
+
 router.route('/:id')
   .get(protect, getSalesOrderById)
   .put(protect, updateSalesOrder)
@@ -27,5 +29,8 @@ router.route('/:id')
 
 router.route('/:id/dispatch')
   .put(protect, dispatchOrder);
+
+router.route('/:id/dispatch-logs')
+  .get(protect, getDispatchLogsByOrderId);
 
 export default router;

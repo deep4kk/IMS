@@ -1,46 +1,24 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const Customer = require('../models/customerModel');
+import {
+  createCustomer,
+  getCustomers,
+  getCustomerById,
+  updateCustomer,
+  deleteCustomer,
+  searchCustomers
+} from '../controllers/customerController.js';
 
-// Create customer
-router.post('/', async (req, res) => {
-  try {
-    const customer = new Customer(req.body);
-    await customer.save();
-    res.status(201).json(customer);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+// Public routes for customers
+router.route('/search').get(searchCustomers);
 
-// Get all customers
-router.get('/', async (req, res) => {
-  try {
-    const customers = await Customer.find();
-    res.json(customers);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+router.route('/')
+  .post(createCustomer)
+  .get(getCustomers);
 
-// Update customer
-router.put('/:id', async (req, res) => {
-  try {
-    const customer = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(customer);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+router.route('/:id')
+  .get(getCustomerById)
+  .put(updateCustomer)
+  .delete(deleteCustomer);
 
-// Delete customer
-router.delete('/:id', async (req, res) => {
-  try {
-    await Customer.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Customer deleted' });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-module.exports = router;
+export default router;

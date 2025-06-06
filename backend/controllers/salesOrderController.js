@@ -1,15 +1,25 @@
-
 import asyncHandler from 'express-async-handler';
 import SalesOrder from '../models/salesOrderModel.js';
 import SKU from '../models/skuModel.js';
 import Customer from '../models/customerModel.js';
 import Transaction from '../models/transactionModel.js';
+import PDFDocument from 'pdfkit';
 
 // @desc    Create new sales order
 // @route   POST /api/sales-orders
 // @access  Private
 export const createSalesOrder = asyncHandler(async (req, res) => {
-  const { customer, expectedDeliveryDate, items, notes } = req.body;
+  const {
+    customer,
+    orderDate,
+    expectedDeliveryDate,
+    deliveryMethod,
+    salesPerson,
+    items,
+    notes,
+    shippingAddress,
+    billingAddress
+  } = req.body;
 
   // Validate customer exists
   const customerExists = await Customer.findById(customer);
@@ -46,8 +56,13 @@ export const createSalesOrder = asyncHandler(async (req, res) => {
 
   const salesOrder = await SalesOrder.create({
     customer,
+    orderDate,
     expectedDeliveryDate,
+    deliveryMethod,
+    salesPerson,
     items,
+    shippingAddress,
+    billingAddress,
     subtotal,
     totalDiscount,
     totalTax,
@@ -250,4 +265,93 @@ export const getSalesOrderStats = asyncHandler(async (req, res) => {
     totalOrders,
     totalRevenue: totalRevenue[0]?.total || 0
   });
+});
+
+// @desc    Export sales order to PDF
+// @route   GET /api/sales-orders/export/pdf/:id
+// @access  Private
+export const exportOrderToPdf = asyncHandler(async (req, res) => {
+  const orderId = req.params.id;
+  const salesOrder = await SalesOrder.findById(orderId)
+    .populate('customer')
+    .populate('items.sku', 'name sku');
+
+  if (!salesOrder) {
+    res.status(404);
+    throw new Error('Sales Order not found');
+  }
+
+  const doc = new PDFDocument({ size: 'A4', margin: 50 });
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename=SO_${salesOrder.orderNumber}.pdf`);
+
+  doc.pipe(res);
+
+  // Header
+  doc.fontSize(20).text(`Sales Order: ${salesOrder.orderNumber}`, { align: 'center' });
+  doc.moveDown();
+
+  // Company and Customer Details
+  doc.fontSize(12).text('Your Company Name', { align: 'left' })
+     .text(`Date: ${new Date(salesOrder.orderDate).toLocaleDateString()}`, { align: 'right' });
+  doc.text('123 Business Rd, Business City, 12345', { align: 'left' })
+     .text(`Status: ${salesOrder.status}`, { align: 'right' });
+  doc.moveDown(2);
+
+  // Addresses
+  const customer = salesOrder.customer;
+  doc.fontSize(12).text('Bill To:', { underline: true });
+  doc.text(customer.name);
+  doc.text(customer.billingAddress.street);
+  doc.text(`${customer.billingAddress.city}, ${customer.billingAddress.state} ${customer.billingAddress.pincode}`);
+  doc.text(customer.billingAddress.country);
+  
+  const shipToX = 350;
+  doc.text('Ship To:', shipToX, doc.y - 60, { underline: true });
+  doc.text(customer.name, shipToX, doc.y);
+  doc.text(customer.shippingAddress.street, shipToX, doc.y);
+  doc.text(`${customer.shippingAddress.city}, ${customer.shippingAddress.state} ${customer.shippingAddress.pincode}`, shipToX, doc.y);
+  doc.text(customer.shippingAddress.country, shipToX, doc.y);
+  doc.moveDown(2);
+
+  // Items Table
+  const tableTop = doc.y;
+  const itemX = 50;
+  const qtyX = 250;
+  const priceX = 320;
+  const totalX = 450;
+
+  doc.fontSize(10).text('Item', itemX, tableTop)
+     .text('Quantity', qtyX, tableTop)
+     .text('Unit Price', priceX, tableTop)
+     .text('Total', totalX, tableTop, {align: 'right'});
+  
+  let i = 0;
+  const items = salesOrder.items;
+  for (i = 0; i < items.length; i++) {
+    const item = items[i];
+    const y = tableTop + 25 + (i * 25);
+    doc.fontSize(10).text(item.sku.name, itemX, y)
+       .text(item.quantity.toString(), qtyX, y)
+       .text(`$${item.unitPrice.toFixed(2)}`, priceX, y)
+       .text(`$${item.totalAmount.toFixed(2)}`, totalX, y, {align: 'right'});
+  }
+  doc.moveDown(2);
+
+  // Totals
+  const totalsY = doc.y;
+  doc.fontSize(10).text(`Subtotal:`, 350, totalsY)
+     .text(`$${salesOrder.subtotal.toFixed(2)}`, 450, totalsY, { align: 'right' });
+  doc.text(`Discount:`, 350, doc.y)
+     .text(`$${salesOrder.totalDiscount.toFixed(2)}`, 450, doc.y, { align: 'right' });
+  doc.text(`Tax:`, 350, doc.y)
+      .text(`$${salesOrder.totalTax.toFixed(2)}`, 450, doc.y, { align: 'right' });
+  doc.fontSize(12).font('Helvetica-Bold').text(`Grand Total:`, 350, doc.y + 10)
+      .text(`$${salesOrder.totalAmount.toFixed(2)}`, 450, doc.y, { align: 'right' });
+
+  // Footer
+  doc.fontSize(8).text('Thank you for your business!', 50, 750, { align: 'center', width: 500 });
+
+  doc.end();
 });

@@ -80,15 +80,19 @@ const menuItems = [
       { text: 'Indent', path: '/purchase/indent' },
       { text: 'Indent Approval', path: '/purchase/indent-approval' },
       { text: 'PO', path: '/purchase/po' },
+      { text: 'PO Master', path: '/purchase/master' }, // Added
       { text: 'Credit/Debit Note', path: '/purchase/credit-debit-note' },
     ]
   },
   { text: 'Sales', icon: <PersonIcon />,
     children: [
       { text: 'Sales Dashboard', path: '/sales/dashboard' },
-      { text: 'Sales Order', path: '/sales/order' },
-      { text: 'Invoice', path: '/sales/invoice' },
-      { text: 'Debit Note', path: '/sales/debit-note' },
+      { text: 'Sales Order', path: '/sales/orders' },
+      { text: 'SO Master', path: '/sales/master' }, // Added
+      { text: 'Dispatch', path: '/sales/dispatch' },
+      { text: 'Invoice', path: '/sales/invoices' },
+      { text: 'Debit Note', path: '/sales/debit-notes' },
+      { text: 'Sales Returns', path: '/sales/returns' },
     ]
   },
   { text: 'SKU Management', icon: <InventoryIcon />, path: '/skus' },

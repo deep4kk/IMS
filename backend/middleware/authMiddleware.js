@@ -35,3 +35,13 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 });
 
+// Authorize manager role
+export const manager = (req, res, next) => {
+  if (req.user && req.user.role === 'manager') {
+    next();
+  } else {
+    res.status(403); // Forbidden
+    throw new Error('Not authorized as a manager');
+  }
+};
+
