@@ -1,22 +1,21 @@
+
 import express from 'express';
-import { protect } from '../middleware/authMiddleware.js';
-
 const router = express.Router();
-
 import {
   getSalesReport,
-  getPurchaseReport,
-  getInventoryReport,
   getFinancialReport,
+  getInventoryReport,
   getCustomerReport,
-  getSupplierReport
+  getSupplierReport,
+  getPurchaseReport,
 } from '../controllers/reportController.js';
+import { protect } from '../middleware/authMiddleware.js';
 
-router.get('/sales', protect, getSalesReport);
-router.get('/purchase', protect, getPurchaseReport);
-router.get('/inventory', protect, getInventoryReport);
-router.get('/financial', protect, getFinancialReport);
-router.get('/customers', protect, getCustomerReport);
-router.get('/suppliers', protect, getSupplierReport);
+router.route('/sales').get(protect, getSalesReport);
+router.route('/financial').get(protect, getFinancialReport);
+router.route('/inventory').get(protect, getInventoryReport);
+router.route('/customers').get(protect, getCustomerReport);
+router.route('/suppliers').get(protect, getSupplierReport);
+router.route('/purchase').get(protect, getPurchaseReport);
 
 export default router;
