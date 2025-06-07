@@ -151,7 +151,13 @@ function SalesOrder() {
         return;
       }
 
+      // Generate order number (format: SO-YYYY-MM-DD-XXXX)
+      const datePart = new Date().toISOString().split('T')[0].replace(/-/g, '');
+      const randomPart = Math.floor(1000 + Math.random() * 9000);
+      const orderNumber = `SO-${datePart}-${randomPart}`;
+
       const orderData = {
+        orderNumber,
         customer: formData.customer._id,
         orderDate: formData.orderDate,
         expectedDeliveryDate: formData.expectedShipmentDate,
@@ -166,8 +172,8 @@ function SalesOrder() {
           totalAmount: (item.quantity * item.unitPrice) - item.discount + item.tax
         })),
         notes: formData.notes,
-        shippingAddress: formData.shippingAddress || formData.customer.shippingAddress || formData.customer.address,
-        billingAddress: formData.billingAddress || formData.customer.billingAddress || formData.customer.address
+        shippingAddress: formData.customer.shippingAddress || formData.customer.billingAddress || formData.customer.address,
+        billingAddress: formData.customer.billingAddress || formData.customer.shippingAddress || formData.customer.address
       };
 
       await axios.post('/api/sales-orders', orderData);

@@ -224,13 +224,13 @@ function Customers() {
         <Table size="small">
           <TableHead sx={{ backgroundColor: 'primary.main' }}>
             <TableRow>
-              <TableCell sx={{ color: 'common.white' }}>Cust. Code</TableCell>
-              <TableCell sx={{ color: 'common.white' }}>Name</TableCell>
-              <TableCell sx={{ color: 'common.white' }}>Email</TableCell>
-              <TableCell sx={{ color: 'common.white' }}>Phone</TableCell>
-              <TableCell sx={{ color: 'common.white' }}>GSTIN</TableCell>
-              <TableCell sx={{ color: 'common.white' }}>City</TableCell>
-              <TableCell sx={{ color: 'common.white', textAlign: 'center' }}>Actions</TableCell>
+              <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Cust. Code</TableCell>
+              <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Name</TableCell>
+              <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Email</TableCell>
+              <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Phone</TableCell>
+              <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>GSTIN</TableCell>
+              <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>City</TableCell>
+              <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }} align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

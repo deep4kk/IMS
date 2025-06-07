@@ -397,7 +397,7 @@ function StockAdjustment() {
     adjustments.map((adjustment) => (
       <TableRow key={adjustment._id}>
         <TableCell>{new Date(adjustment.createdAt).toLocaleDateString()}</TableCell>
-        <TableCell>{adjustment.sku.name}</TableCell>
+        <TableCell>{adjustment.sku?.name || 'N/A'}</TableCell>
         <TableCell>
           <Chip
             label={adjustment.adjustmentType}
@@ -408,7 +408,7 @@ function StockAdjustment() {
         <TableCell>{adjustment.quantity}</TableCell>
         <TableCell>{adjustment.previousStock}</TableCell>
         <TableCell>{adjustment.updatedStock}</TableCell>
-        <TableCell>{adjustment.sku.currentStock}</TableCell> {/* Add this */}
+        <TableCell>{adjustment.sku?.currentStock || 'N/A'}</TableCell> {/* Add this */}
         <TableCell>{adjustment.reason}</TableCell>
         <TableCell>{adjustment.notes}</TableCell>
       </TableRow>
