@@ -9,6 +9,7 @@ import {
 } from '../controllers/purchaseIndentController.js';
 import {
   getPendingIndentsForApproval,
+  getApprovedIndents,
   approveIndent,
   rejectIndent,
   getApprovalHistory
@@ -22,16 +23,10 @@ router.route('/:id/submit')
   .put(protect, submitForApproval);
 
 // Approval routes
-router.route('/approval/pending')
-  .get(protect, manager, getPendingIndentsForApproval);
-
-router.route('/approval/:id/approve')
-  .put(protect, manager, approveIndent);
-
-router.route('/approval/:id/reject')
-  .put(protect, manager, rejectIndent);
-
-router.route('/approval/:id/history')
-  .get(protect, getApprovalHistory);
+router.get('/approval/pending', protect, getPendingIndentsForApproval);
+router.get('/approval/approved', protect, getApprovedIndents);
+router.put('/approval/:id/approve', protect, approveIndent);
+router.put('/approval/:id/reject', protect, rejectIndent);
+router.get('/approval/:id/history', protect, getApprovalHistory);
 
 export default router;

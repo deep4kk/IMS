@@ -1,35 +1,4 @@
-import asyncHandler from 'express-async-handler';
-import PurchaseIndentApproval from '../models/purchaseIndentApprovalModel.js';
-import PurchaseIndent from '../models/purchaseIndentModel.js';
 
-// Get pending indents for approval
-const getPendingIndentsForApproval = asyncHandler(async (req, res) => {
-  const pendingIndents = await PurchaseIndentApproval.find({
-    status: 'PO Pending'
-  })
-  .populate('indent', 'indentId items')
-  .populate('approvedBy', 'name')
-  .populate('items.sku', 'name skuCode');
-
-  res.json(pendingIndents);
-});
-
-// Get approved indents
-const getApprovedIndents = asyncHandler(async (req, res) => {
-  const approvedIndents = await PurchaseIndentApproval.find({
-    status: { $in: ['PO Created', 'Cancelled'] }
-  })
-  .populate('indent', 'indentId items')
-  .populate('approvedBy', 'name')
-  .populate('items.sku', 'name skuCode');
-
-  res.json(approvedIndents);
-});
-
-export {
-  getPendingIndentsForApproval,
-  getApprovedIndents,
-};
 import asyncHandler from 'express-async-handler';
 import PurchaseIndent from '../models/purchaseIndentModel.js';
 import PurchaseIndentApproval from '../models/purchaseIndentApprovalModel.js';
@@ -55,6 +24,36 @@ export const getPendingIndentsForApproval = asyncHandler(async (req, res) => {
 
   res.json({
     indents: pendingIndents,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit),
+    totalIndents: total
+  });
+});
+
+// @desc    Get approved indents
+// @route   GET /api/purchase-indents/approval/approved
+// @access  Private
+export const getApprovedIndents = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 50;
+  const skip = (page - 1) * limit;
+
+  const approvedIndents = await PurchaseIndent.find({
+    status: { $in: ['approved', 'rejected'] }
+  })
+    .populate('requestedBy', 'name email')
+    .populate('approvedBy', 'name email')
+    .populate('items.sku', 'name sku')
+    .sort({ approvedAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await PurchaseIndent.countDocuments({ 
+    status: { $in: ['approved', 'rejected'] }
+  });
+
+  res.json({
+    indents: approvedIndents,
     currentPage: page,
     totalPages: Math.ceil(total / limit),
     totalIndents: total

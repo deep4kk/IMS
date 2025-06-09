@@ -1,354 +1,368 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+
+import React, { useState, useEffect } from 'react';
 import {
-  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Select, MenuItem, CircularProgress, IconButton, TextField, InputAdornment, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Alert,
+  CircularProgress,
+  Tabs,
+  Tab,
+  Card,
+  CardContent,
+  Grid,
+  IconButton,
+  Tooltip
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import SearchIcon from '@mui/icons-material/Search';
+import {
+  CheckCircle as ApproveIcon,
+  Cancel as RejectIcon,
+  Visibility as ViewIcon,
+  GetApp as ExportIcon
+} from '@mui/icons-material';
+import axios from 'axios';
+import { format } from 'date-fns';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 function IndentApproval() {
-  const [indents, setIndents] = useState([]);
-  const [approvedIndents, setApprovedIndents] = useState([]);
-  const [skus, setSkus] = useState([]);
-  const [vendors, setVendors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(null); // indent id
-  const [originalItems, setOriginalItems] = useState([]);
-  const [editItems, setEditItems] = useState([]);
-  const [error, setError] = useState(null);
-  const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState(0);
-  const [viewingIndent, setViewingIndent] = useState(null);
-  const [indentLogs, setIndentLogs] = useState([]);
+  const [pendingIndents, setPendingIndents] = useState([]);
+  const [approvedIndents, setApprovedIndents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedIndent, setSelectedIndent] = useState(null);
+  const [actionDialog, setActionDialog] = useState({ open: false, type: '', indent: null });
+  const [remarks, setRemarks] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, [activeTab]);
+    fetchPendingIndents();
+    fetchApprovedIndents();
+  }, []);
 
-  const fetchData = async () => {
+  const fetchPendingIndents = async () => {
     setLoading(true);
     try {
-      const [skuRes, vendorRes] = await Promise.all([
-        axios.get('/api/skus'),
-        axios.get('/api/suppliers'),
-      ]);
-      setSkus(skuRes.data.skus || skuRes.data);
-      setVendors(vendorRes.data.suppliers || vendorRes.data);
+      const response = await axios.get('/api/purchase-indents/approval/pending');
+      setPendingIndents(response.data.indents || []);
+    } catch (error) {
+      console.error('Error fetching pending indents:', error);
+    }
+    setLoading(false);
+  };
 
-      if (activeTab === 0) {
-        const indentRes = await axios.get('/api/purchase-indents/pending-for-approval');
-        setIndents(indentRes.data || []);
-      } else {
-        const approvedIndentRes = await axios.get('/api/purchase-indents/approved-indents');
-        setApprovedIndents(approvedIndentRes.data || []);
-      }
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to load data');
-      setLoading(false);
+  const fetchApprovedIndents = async () => {
+    try {
+      const response = await axios.get('/api/purchase-indents/approval/approved');
+      setApprovedIndents(response.data.indents || []);
+    } catch (error) {
+      console.error('Error fetching approved indents:', error);
     }
   };
 
-  const handleEdit = (indent) => {
-    setEditing(indent._id);
-    const items = indent.items.map(it => ({ ...it }));
-    setOriginalItems(JSON.parse(JSON.stringify(items)));
-    setEditItems(items);
+  const handleAction = async () => {
+    if (!actionDialog.indent) return;
+
+    setSubmitting(true);
+    try {
+      const endpoint = actionDialog.type === 'approve' ? 'approve' : 'reject';
+      await axios.put(`/api/purchase-indents/approval/${actionDialog.indent._id}/${endpoint}`, {
+        remarks
+      });
+
+      // Refresh data
+      await fetchPendingIndents();
+      await fetchApprovedIndents();
+
+      setActionDialog({ open: false, type: '', indent: null });
+      setRemarks('');
+    } catch (error) {
+      console.error(`Error ${actionDialog.type}ing indent:`, error);
+    }
+    setSubmitting(false);
   };
 
-  const handleItemChange = (idx, field, value) => {
-    setEditItems(items => {
-      const arr = [...items];
-      arr[idx][field] = value;
-      if (field === 'sku') arr[idx].vendor = '';
-      return arr;
+  const exportToPDF = (indentsList, title) => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text(title, 14, 22);
+    doc.setFontSize(11);
+    
+    const tableColumn = ['Indent ID', 'Requested By', 'Total Items', 'Status', 'Date'];
+    const tableRows = indentsList.map(indent => [
+      indent.indentId || 'N/A',
+      indent.requestedBy?.name || 'Unknown',
+      indent.items?.length || 0,
+      indent.status,
+      format(new Date(indent.createdAt), 'dd/MM/yyyy')
+    ]);
+
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
     });
+
+    doc.save(`${title.replace(/\s+/g, '_')}.pdf`);
   };
 
-  const handleSave = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (!user || !user._id) {
-        setError('User not found. Please log in again.');
-        return;
-      }
-      await axios.put(`/api/purchase-indents/${editing}`, {
-        items: editItems,
-        originalItems: originalItems,
-        userId: user._id
-      });
-      setEditing(null);
-      setEditItems([]);
-      setOriginalItems([]);
-      fetchData();
-    } catch (err) {
-      setError('Failed to update indent: ' + (err.response?.data?.error || err.message));
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending_approval': return 'warning';
+      case 'approved': return 'success';
+      case 'rejected': return 'error';
+      default: return 'default';
     }
   };
 
-  const handleApprove = async (id) => {
-    try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (!user || !user._id) {
-        setError('User not found. Please log in again.');
-        return;
-      }
-
-      const indentToApprove = indents.find(indent => indent._id === id);
-      if (!indentToApprove) {
-        setError('Indent not found for approval.');
-        return;
-      }
-
-      // Use editItems if this indent is currently being edited, otherwise use its original items.
-      // Ensure that vendor is selected for all items before approving.
-      const itemsToApprove = (editing === id ? editItems : indentToApprove.items).map(item => {
-        // Ensure vendor is present, otherwise the PO creation will fail later
-        if (!item.vendor) {
-          // This is a client-side catch. Ideally, UI should enforce vendor selection.
-          throw new Error(`Vendor not selected for SKU: ${skus.find(s=>s._id === item.sku)?.name || item.sku}`);
-        }
-        return {
-          sku: item.sku,
-          quantity: item.quantity,
-          vendor: item.vendor, // Ensure vendor is included
-        };
-      });
-
-
-      await axios.post(`/api/purchase-indents/${id}/approve`, {
-        userId: user._id,
-        items: itemsToApprove, // Send the items with confirmed vendors
-        // approvalRemarks: "Approved via UI" // Optionally add remarks
-      });
-
-      // Reset editing state if the approved indent was being edited
-      if (editing === id) {
-        setEditing(null);
-        setEditItems([]);
-      }
-      fetchData(); // Refresh data to reflect changes
-    } catch (err) {
-      setError(`Failed to approve indent: ${err.message || 'Server error'}`);
-      console.error("Error approving indent:", err);
-    }
-  };
-
-  // Filter indents by search (by indent ID or SKU name)
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-  };
-
-  const displayedIndents = (activeTab === 0 ? indents : approvedIndents).filter(i => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    const idMatch = i.indentId?.toLowerCase().includes(searchLower);
-    const skuMatch = (i.items || []).some(it => {
-      const sku = skus.find(s => s._id === it.sku);
-      return sku?.name?.toLowerCase().includes(searchLower) || sku?.sku?.toLowerCase().includes(searchLower);
-    });
-    return idMatch || skuMatch;
-  });
-
-  const handleViewIndent = async (indent) => {
-    setViewingIndent(indent);
-    try {
-      const res = await axios.get(`/api/purchase-indents/${indent._id}/logs`);
-      setIndentLogs(res.data);
-    } catch (err) {
-      console.error("Failed to fetch indent logs", err);
-    }
-  };
+  const TabPanel = ({ children, value, index }) => (
+    <div hidden={value !== index}>
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+    </div>
+  );
 
   return (
-    <Box sx={{ p: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
-      <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          Indent Approval
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1" fontWeight="bold">
+          Purchase Indent Approvals
         </Typography>
-        <TextField
-          placeholder="Search by Indent ID or SKU name"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          size="small"
-          sx={{ mb: 2, width: 350 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            )
-          }}
-        />
-      </Paper>
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={activeTab} onChange={handleTabChange} aria-label="indent status tabs">
-          <Tab label="Pending for Approval" />
-          <Tab label="Master (Approved & Pending)" />
-        </Tabs>
+        <Button
+          variant="outlined"
+          startIcon={<ExportIcon />}
+          onClick={() => exportToPDF(
+            activeTab === 0 ? pendingIndents : approvedIndents,
+            activeTab === 0 ? 'Pending Indents' : 'Approved Indents'
+          )}
+        >
+          Export PDF
+        </Button>
       </Box>
 
-      {loading ? <CircularProgress /> : (
-        displayedIndents.length === 0 ? (
-          <Typography sx={{ mt: 4, textAlign: 'center', fontStyle: 'italic' }}>No Data available for the selected tab.</Typography>
-        ) : (
-          <TableContainer component={Paper} elevation={3}>
-            <Table size="medium" aria-label="indent approval table">
-              <TableHead sx={{ backgroundColor: 'primary.main' }}>
-                <TableRow>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Indent ID</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Created</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Items</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {displayedIndents.map(indent => (
-                  <TableRow key={indent._id} sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f9f9f9' } }}>
-                    <TableCell component="th" scope="row">
-                      {indent.indentId}
-                    </TableCell>
-                    <TableCell>{new Date(indent.createdAt).toLocaleString()}</TableCell>
-                    <TableCell>
-                      {editing === indent._id ? (
-                        <Table size="small" sx={{ width: '100%' }}>
-                          <TableHead>
-                            <TableRow>
-                              <TableCell>SKU</TableCell>
-                              <TableCell>Stock</TableCell>
-                              <TableCell>Qty</TableCell>
-                              <TableCell>Dept</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {editItems.map((item, idx) => {
-                              const skuObj = skus.find(s => s._id === item.sku);
-                              return (
-                                <TableRow key={idx}>
-                                  <TableCell>{skuObj?.name}</TableCell>
-                                  <TableCell>{skuObj?.currentStock}</TableCell>
-                                  <TableCell>
-                                    <TextField
-                                      type="number"
-                                      size="small"
-                                      value={item.quantity}
-                                      onChange={e => handleItemChange(idx, 'quantity', parseInt(e.target.value, 10) || 1)}
-                                      inputProps={{ min: 1 }}
-                                      sx={{ width: 80 }}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <Select
-                                      value={item.department}
-                                      onChange={e => handleItemChange(idx, 'department', e.target.value)}
-                                      size="small"
-                                      fullWidth
-                                    >
-                                      <MenuItem value="HR">HR</MenuItem>
-                                      <MenuItem value="IT">IT</MenuItem>
-                                      <MenuItem value="Finance">Finance</MenuItem>
-                                      <MenuItem value="Operations">Operations</MenuItem>
-                                    </Select>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      ) : (
-                        (indent.items || []).length + " items"
-                      )}
-                    </TableCell>
-                    <TableCell>{indent.status}</TableCell>
-                    <TableCell>
-                      <Button size="small" variant="outlined" onClick={() => handleViewIndent(indent)}>View</Button>
-                      {editing === indent._id ? (
-                        <>
-                          <Button onClick={handleSave} size="small" variant="contained" color="primary" sx={{ ml: 1 }}>Save</Button>
-                          <Button onClick={() => setEditing(null)} size="small" sx={{ ml: 1 }}>Cancel</Button>
-                        </>
-                      ) : (
-                        <>
-                          {indent.status === 'Pending' && (
-                            <>
-                              <IconButton onClick={() => handleEdit(indent)} size="small" aria-label="edit indent" color="primary" sx={{ ml: 1 }}>
-                                <EditIcon />
+      <Card>
+        <CardContent>
+          <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
+            <Tab label={`Pending Approval (${pendingIndents.length})`} />
+            <Tab label={`Approved/Rejected (${approvedIndents.length})`} />
+          </Tabs>
+
+          <TabPanel value={activeTab} index={0}>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : pendingIndents.length === 0 ? (
+              <Alert severity="info">No pending indents for approval</Alert>
+            ) : (
+              <TableContainer component={Paper} elevation={0}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Indent ID</TableCell>
+                      <TableCell>Requested By</TableCell>
+                      <TableCell>Total Items</TableCell>
+                      <TableCell>Request Date</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {pendingIndents.map((indent) => (
+                      <TableRow key={indent._id} hover>
+                        <TableCell>{indent.indentId || 'N/A'}</TableCell>
+                        <TableCell>{indent.requestedBy?.name || 'Unknown'}</TableCell>
+                        <TableCell>{indent.items?.length || 0}</TableCell>
+                        <TableCell>{format(new Date(indent.createdAt), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={indent.status} 
+                            color={getStatusColor(indent.status)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <Tooltip title="Approve">
+                              <IconButton
+                                color="success"
+                                onClick={() => setActionDialog({ 
+                                  open: true, 
+                                  type: 'approve', 
+                                  indent 
+                                })}
+                              >
+                                <ApproveIcon />
                               </IconButton>
-                              <Button onClick={() => handleApprove(indent._id)} size="small" variant="contained" color="success" sx={{ ml: 1 }}>
-                                Approve
-                              </Button>
-                            </>
-                          )}
-                        </>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )
-      )}
-      {error && <Typography color="error" sx={{ mt: 2, textAlign: 'center', fontWeight: 'bold' }}>{error}</Typography>}
-      <Dialog open={!!viewingIndent} onClose={() => setViewingIndent(null)} maxWidth="lg" fullWidth>
-        <DialogTitle>Indent Details - {viewingIndent?.indentId}</DialogTitle>
-        <DialogContent>
-          {viewingIndent && (
-            <>
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>SKU</TableCell>
-                      <TableCell>Quantity</TableCell>
-                      <TableCell>Department</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {viewingIndent.items.map((item, idx) => {
-                      const sku = skus.find(s => s._id === item.sku);
-                      return (
-                        <TableRow key={idx}>
-                          <TableCell>{sku?.name || 'N/A'}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>{item.department}</TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              <Typography variant="h6" sx={{ mt: 2 }}>Change Log</Typography>
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Date</TableCell>
-                      <TableCell>User</TableCell>
-                      <TableCell>Field</TableCell>
-                      <TableCell>Old Value</TableCell>
-                      <TableCell>New Value</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {indentLogs.map(log => log.changes.map((change, idx) => (
-                      <TableRow key={`${log._id}-${idx}`}>
-                        <TableCell>{new Date(log.createdAt).toLocaleString()}</TableCell>
-                        <TableCell>{log.user?.name}</TableCell>
-                        <TableCell>{change.field}</TableCell>
-                        <TableCell>{String(change.oldValue)}</TableCell>
-                        <TableCell>{String(change.newValue)}</TableCell>
+                            </Tooltip>
+                            <Tooltip title="Reject">
+                              <IconButton
+                                color="error"
+                                onClick={() => setActionDialog({ 
+                                  open: true, 
+                                  type: 'reject', 
+                                  indent 
+                                })}
+                              >
+                                <RejectIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="View Details">
+                              <IconButton
+                                onClick={() => setSelectedIndent(indent)}
+                              >
+                                <ViewIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
                       </TableRow>
-                    )))}
+                    ))}
                   </TableBody>
                 </Table>
               </TableContainer>
-            </>
+            )}
+          </TabPanel>
+
+          <TabPanel value={activeTab} index={1}>
+            {approvedIndents.length === 0 ? (
+              <Alert severity="info">No approved/rejected indents</Alert>
+            ) : (
+              <TableContainer component={Paper} elevation={0}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Indent ID</TableCell>
+                      <TableCell>Requested By</TableCell>
+                      <TableCell>Approved By</TableCell>
+                      <TableCell>Total Items</TableCell>
+                      <TableCell>Action Date</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Remarks</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {approvedIndents.map((indent) => (
+                      <TableRow key={indent._id} hover>
+                        <TableCell>{indent.indentId || 'N/A'}</TableCell>
+                        <TableCell>{indent.requestedBy?.name || 'Unknown'}</TableCell>
+                        <TableCell>{indent.approvedBy?.name || 'N/A'}</TableCell>
+                        <TableCell>{indent.items?.length || 0}</TableCell>
+                        <TableCell>
+                          {indent.approvedAt ? format(new Date(indent.approvedAt), 'dd/MM/yyyy') : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={indent.status} 
+                            color={getStatusColor(indent.status)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>{indent.approvalRemarks || 'No remarks'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </TabPanel>
+        </CardContent>
+      </Card>
+
+      {/* Action Dialog */}
+      <Dialog open={actionDialog.open} onClose={() => setActionDialog({ open: false, type: '', indent: null })}>
+        <DialogTitle>
+          {actionDialog.type === 'approve' ? 'Approve' : 'Reject'} Indent
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Are you sure you want to {actionDialog.type} this indent?
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Remarks (Optional)"
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setActionDialog({ open: false, type: '', indent: null })}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAction}
+            color={actionDialog.type === 'approve' ? 'success' : 'error'}
+            variant="contained"
+            disabled={submitting}
+          >
+            {submitting ? <CircularProgress size={20} /> : 
+             (actionDialog.type === 'approve' ? 'Approve' : 'Reject')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Details Dialog */}
+      <Dialog 
+        open={Boolean(selectedIndent)} 
+        onClose={() => setSelectedIndent(null)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Indent Details</DialogTitle>
+        <DialogContent>
+          {selectedIndent && (
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography variant="subtitle2">Indent ID:</Typography>
+                <Typography>{selectedIndent.indentId || 'N/A'}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="subtitle2">Requested By:</Typography>
+                <Typography>{selectedIndent.requestedBy?.name || 'Unknown'}</Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>Items:</Typography>
+                <TableContainer component={Paper} elevation={1}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>SKU</TableCell>
+                        <TableCell>Quantity</TableCell>
+                        <TableCell>Unit</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedIndent.items?.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.sku?.name || 'Unknown SKU'}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell>{item.unit || 'pcs'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+            </Grid>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setViewingIndent(null)}>Close</Button>
+          <Button onClick={() => setSelectedIndent(null)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

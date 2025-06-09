@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Paper,
-  Button,
-  Grid,
   Card,
   CardContent,
   Table,
@@ -13,506 +10,450 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Paper,
+  Button,
+  Chip,
+  Tabs,
+  Tab,
+  Alert,
+  CircularProgress,
+  IconButton,
+  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Grid,
   TextField,
+  Select,
   MenuItem,
-  Chip,
-  IconButton,
-  Fab,
-  Autocomplete,
-  TablePagination,
   FormControl,
   InputLabel,
-  Select,
-  Divider,
-  Tabs,
-  Tab
+  Divider
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
   Visibility as ViewIcon,
-  FilterList as FilterIcon,
-  Search as SearchIcon,
-  PictureAsPdf as PdfIcon,
-  Business as BusinessIcon,
-  GetApp as GetAppIcon
+  GetApp as ExportIcon,
+  Business as SupplierIcon
 } from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { useAlert } from '../../context/AlertContext';
 import axios from 'axios';
-
-function TabPanel({ children, value, index, ...other }) {
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
+import { format } from 'date-fns';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 function PurchaseOrderMaster() {
-  const [orders, setOrders] = useState([]);
-  const [pendingIndents, setPendingIndents] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
+  const [activeTab, setActiveTab] = useState(0);
+  const [allPOs, setAllPOs] = useState([]);
+  const [pendingPOs, setPendingPOs] = useState([]);
+  const [supplierGroups, setSupplierGroups] = useState({});
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
-  const [totalOrders, setTotalOrders] = useState(0);
-  const [tabValue, setTabValue] = useState(0);
-
-  // Dialog states
-  const [viewDialog, setViewDialog] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [createPoDialog, setCreatePoDialog] = useState(false);
-  const [selectedIndents, setSelectedIndents] = useState([]);
-
-  // Filter states
-  const [filters, setFilters] = useState({
-    status: '',
+  const [suppliers, setSuppliers] = useState([]);
+  const [createPODialog, setCreatePODialog] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState('');
+  const [newPOData, setNewPOData] = useState({
     supplier: '',
-    startDate: null,
-    endDate: null
+    expectedDeliveryDate: '',
+    terms: '',
+    notes: ''
   });
 
-  const { showAlert } = useAlert();
-
   useEffect(() => {
-    fetchOrders();
-    fetchSuppliers();
-    if (tabValue === 1) {
-      fetchPendingIndents();
-    }
-  }, [page, rowsPerPage, filters, tabValue]);
+    fetchAllData();
+  }, []);
 
-  const fetchOrders = async () => {
+  const fetchAllData = async () => {
     setLoading(true);
     try {
-      const params = {
-        page: page + 1,
-        limit: rowsPerPage,
-        ...filters
-      };
+      const [posResponse, suppliersResponse] = await Promise.all([
+        axios.get('/api/purchase-orders'),
+        axios.get('/api/suppliers')
+      ]);
 
-      const response = await axios.get('/api/purchase-orders', { params });
-      setOrders(response.data.purchaseOrders || response.data || []);
-      setTotalOrders(response.data.totalOrders || 0);
-    } catch (error) {
-      showAlert('error', 'Failed to fetch purchase orders');
-    } finally {
-      setLoading(false);
-    }
-  };
+      const allOrders = posResponse.data.purchaseOrders || [];
+      setAllPOs(allOrders);
 
-  const fetchPendingIndents = async () => {
-    try {
-      const response = await axios.get('/api/purchase-indents', {
-        params: { status: 'approved' }
-      });
-      setPendingIndents(response.data.indents || []);
-    } catch (error) {
-      showAlert('error', 'Failed to fetch pending indents');
-    }
-  };
+      // Group pending POs by supplier
+      const pending = allOrders.filter(po => po.status === 'pending' || po.status === 'draft');
+      setPendingPOs(pending);
 
-  const fetchSuppliers = async () => {
-    try {
-      const response = await axios.get('/api/suppliers');
-      setSuppliers(response.data || []);
+      // Group by supplier
+      const grouped = pending.reduce((acc, po) => {
+        const supplierId = po.supplier?._id || 'unknown';
+        const supplierName = po.supplier?.name || 'Unknown Supplier';
+
+        if (!acc[supplierId]) {
+          acc[supplierId] = {
+            supplier: po.supplier,
+            orders: []
+          };
+        }
+        acc[supplierId].orders.push(po);
+        return acc;
+      }, {});
+
+      setSupplierGroups(grouped);
+      setSuppliers(suppliersResponse.data || []);
     } catch (error) {
-      showAlert('error', 'Failed to fetch suppliers');
+      console.error('Error fetching data:', error);
     }
+    setLoading(false);
   };
 
   const handleCreatePO = async () => {
-    if (selectedIndents.length === 0) {
-      showAlert('error', 'Please select at least one indent');
-      return;
-    }
+    if (!newPOData.supplier) return;
 
     try {
-      const response = await axios.post('/api/purchase-orders/from-indents', {
-        indentIds: selectedIndents
+      const response = await axios.post('/api/purchase-orders', {
+        ...newPOData,
+        status: 'draft',
+        items: [] // Empty items array for new PO
       });
-      showAlert('success', 'Purchase Order created successfully');
-      setCreatePoDialog(false);
-      setSelectedIndents([]);
-      fetchOrders();
-      fetchPendingIndents();
+
+      setCreatePODialog(false);
+      setNewPOData({
+        supplier: '',
+        expectedDeliveryDate: '',
+        terms: '',
+        notes: ''
+      });
+      fetchAllData();
     } catch (error) {
-      showAlert('error', 'Failed to create purchase order');
+      console.error('Error creating PO:', error);
     }
   };
 
-  const handleExportPdf = async (orderId) => {
-    try {
-      const response = await axios.get(`/api/purchase-orders/export/pdf/${orderId}`, {
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `PurchaseOrder_${orderId}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      showAlert('success', 'PDF exported successfully!');
-    } catch (error) {
-      showAlert('error', 'Failed to export PDF.');
-    }
+  const exportToPDF = (orders, title) => {
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text(title, 14, 22);
+    doc.setFontSize(11);
+
+    const tableColumn = ['PO Number', 'Supplier', 'Total Amount', 'Status', 'Date'];
+    const tableRows = orders.map(po => [
+      po.poNumber || 'N/A',
+      po.supplier?.name || 'Unknown',
+      `$${po.totalAmount?.toFixed(2) || '0.00'}`,
+      po.status,
+      format(new Date(po.createdAt), 'dd/MM/yyyy')
+    ]);
+
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
+    });
+
+    doc.save(`${title.replace(/\s+/g, '_')}.pdf`);
   };
 
   const getStatusColor = (status) => {
-    const colors = {
-      draft: 'default',
-      confirmed: 'primary',
-      partial_received: 'warning',
-      completed: 'success',
-      cancelled: 'error'
-    };
-    return colors[status] || 'default';
+    switch (status) {
+      case 'draft': return 'default';
+      case 'pending': return 'warning';
+      case 'approved': return 'info';
+      case 'received': return 'success';
+      case 'cancelled': return 'error';
+      default: return 'default';
+    }
   };
 
-  const groupIndentsBySupplier = () => {
-    const grouped = {};
-    pendingIndents.forEach(indent => {
-      indent.items.forEach(item => {
-        if (item.preferredSupplier) {
-          const supplierId = item.preferredSupplier._id;
-          if (!grouped[supplierId]) {
-            grouped[supplierId] = {
-              supplier: item.preferredSupplier,
-              indents: []
-            };
-          }
-          const existingIndent = grouped[supplierId].indents.find(i => i._id === indent._id);
-          if (!existingIndent) {
-            grouped[supplierId].indents.push(indent);
-          }
-        }
-      });
-    });
-    return grouped;
-  };
+  const TabPanel = ({ children, value, index }) => (
+    <div hidden={value !== index}>
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ p: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
-        <Paper elevation={3} sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-            Purchase Order Management
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<GetAppIcon />}
-              onClick={() => {
-                // Export all purchase orders functionality
-                alert('Export all purchase orders feature coming soon');
-              }}
-            >
-              Export All
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setCreatePoDialog(true)}
-            >
-              Create PO
-            </Button>
-          </Box>
-        </Paper>
-
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-            <Tab label="Master (All POs)" />
-            <Tab label="Pending Indents" />
-          </Tabs>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1" fontWeight="bold">
+          Purchase Order Management
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<ExportIcon />}
+            onClick={() => exportToPDF(
+              activeTab === 0 ? allPOs : pendingPOs,
+              activeTab === 0 ? 'All Purchase Orders' : 'Pending Purchase Orders'
+            )}
+          >
+            Export PDF
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreatePODialog(true)}
+          >
+            Create PO
+          </Button>
         </Box>
+      </Box>
 
-        <TabPanel value={tabValue} index={0}>
-          {/* Filters */}
-          <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={filters.status}
-                    label="Status"
-                    onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                  >
-                    <MenuItem value="">All Statuses</MenuItem>
-                    <MenuItem value="draft">Draft</MenuItem>
-                    <MenuItem value="confirmed">Confirmed</MenuItem>
-                    <MenuItem value="partial_received">Partial Received</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                    <MenuItem value="cancelled">Cancelled</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <Autocomplete
-                  size="small"
-                  options={suppliers}
-                  getOptionLabel={(option) => option.name || ''}
-                  value={suppliers.find(s => s._id === filters.supplier) || null}
-                  onChange={(_, value) => setFilters(prev => ({ ...prev, supplier: value?._id || '' }))}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Supplier" />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} md={2}>
-                <DatePicker
-                  label="Start Date"
-                  value={filters.startDate}
-                  onChange={(date) => setFilters(prev => ({ ...prev, startDate: date }))}
-                  renderInput={(params) => <TextField {...params} size="small" fullWidth />}
-                />
-              </Grid>
-              <Grid item xs={12} md={2}>
-                <DatePicker
-                  label="End Date"
-                  value={filters.endDate}
-                  onChange={(date) => setFilters(prev => ({ ...prev, endDate: date }))}
-                  renderInput={(params) => <TextField {...params} size="small" fullWidth />}
-                />
-              </Grid>
-              <Grid item xs={12} md={2}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  onClick={() => setFilters({ status: '', supplier: '', startDate: null, endDate: null })}
-                >
-                  Clear Filters
-                </Button>
-              </Grid>
-            </Grid>
-          </Paper>
+      <Card>
+        <CardContent>
+          <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
+            <Tab label={`Master (${allPOs.length})`} />
+            <Tab label={`Pending (${pendingPOs.length})`} />
+            <Tab label="Supplier Wise" />
+          </Tabs>
 
-          {/* Orders Table */}
-          <TableContainer component={Paper} elevation={3}>
-            <Table>
-              <TableHead sx={{ backgroundColor: 'primary.main' }}>
-                <TableRow>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>PO Number</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Supplier</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Order Date</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Expected Date</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Total Amount</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order._id} hover sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f9f9f9' } }}>
-                    <TableCell>{order.orderNumber}</TableCell>
-                    <TableCell>{order.supplier?.name}</TableCell>
-                    <TableCell>
-                      {new Date(order.orderDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(order.expectedDeliveryDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>₹{order.totalAmount?.toFixed(2) || '0.00'}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={order.status}
-                        color={getStatusColor(order.status)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setViewDialog(true);
-                        }}
-                      >
-                        <ViewIcon />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleExportPdf(order._id)}
-                        color="secondary"
-                      >
-                        <PdfIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <TablePagination
-              rowsPerPageOptions={[10, 25, 50]}
-              component="div"
-              count={totalOrders}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={(_, newPage) => setPage(newPage)}
-              onRowsPerPageChange={(e) => {
-                setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(0);
-              }}
-            />
-          </TableContainer>
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={1}>
-          {/* Pending Indents by Supplier */}
-          <Grid container spacing={3}>
-            {Object.entries(groupIndentsBySupplier()).map(([supplierId, data]) => (
-              <Grid item xs={12} md={6} lg={4} key={supplierId}>
-                <Card elevation={3}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <BusinessIcon color="primary" sx={{ mr: 1 }} />
-                      <Typography variant="h6" component="h2">
-                        {data.supplier.name}
-                      </Typography>
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Pending Indents: {data.indents.length}
-                    </Typography>
-                    <Divider sx={{ my: 1 }} />
-                    {data.indents.slice(0, 3).map((indent) => (
-                      <Typography key={indent._id} variant="body2" sx={{ mb: 0.5 }}>
-                        • {indent.indentNumber} - {indent.items.length} items
-                      </Typography>
-                    ))}
-                    {data.indents.length > 3 && (
-                      <Typography variant="body2" color="text.secondary">
-                        ... and {data.indents.length - 3} more
-                      </Typography>
-                    )}
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      sx={{ mt: 2 }}
-                      onClick={() => {
-                        setSelectedIndents(data.indents.map(i => i._id));
-                        setCreatePoDialog(true);
-                      }}
-                    >
-                      Create PO
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </TabPanel>
-
-        {/* View Order Dialog */}
-        <Dialog
-          open={viewDialog}
-          onClose={() => setViewDialog(false)}
-          maxWidth="lg"
-          fullWidth
-        >
-          <DialogTitle>Purchase Order Details - {selectedOrder?.orderNumber}</DialogTitle>
-          <DialogContent>
-            {selectedOrder && (
-              <Box>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2">Supplier</Typography>
-                    <Typography>{selectedOrder.supplier?.name}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2">Order Date</Typography>
-                    <Typography>{new Date(selectedOrder.orderDate).toLocaleDateString()}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2">Expected Delivery Date</Typography>
-                    <Typography>{new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString()}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2">Status</Typography>
-                    <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" />
-                  </Grid>
-                </Grid>
-                <Divider sx={{ my: 2 }} />
-                <Typography variant="h6" sx={{ mb: 1 }}>Items</Typography>
-                <TableContainer component={Paper}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>SKU</TableCell>
-                        <TableCell>Quantity</TableCell>
-                        <TableCell>Unit Price</TableCell>
-                        <TableCell>Total</TableCell>
+          {/* Master Tab - All POs */}
+          <TabPanel value={activeTab} index={0}>
+            {allPOs.length === 0 ? (
+              <Alert severity="info">No purchase orders found</Alert>
+            ) : (
+              <TableContainer component={Paper} elevation={0}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>PO Number</TableCell>
+                      <TableCell>Supplier</TableCell>
+                      <TableCell>Total Amount</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Order Date</TableCell>
+                      <TableCell>Expected Delivery</TableCell>
+                      <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {allPOs.map((po) => (
+                      <TableRow key={po._id} hover>
+                        <TableCell>{po.poNumber || 'N/A'}</TableCell>
+                        <TableCell>{po.supplier?.name || 'Unknown'}</TableCell>
+                        <TableCell>${po.totalAmount?.toFixed(2) || '0.00'}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={po.status} 
+                            color={getStatusColor(po.status)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>{format(new Date(po.createdAt), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell>
+                          {po.expectedDeliveryDate ? 
+                            format(new Date(po.expectedDeliveryDate), 'dd/MM/yyyy') : 'N/A'}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <Tooltip title="View">
+                              <IconButton size="small">
+                                <ViewIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Edit">
+                              <IconButton size="small">
+                                <EditIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {selectedOrder.items?.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.sku?.name}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>₹{item.unitPrice?.toFixed(2) || '0.00'}</TableCell>
-                          <TableCell>₹{item.totalAmount?.toFixed(2) || '0.00'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                <Box sx={{ mt: 2, textAlign: 'right' }}>
-                  <Typography variant="h6">
-                    Grand Total: ₹{selectedOrder.totalAmount?.toFixed(2) || '0.00'}
-                  </Typography>
-                </Box>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </TabPanel>
+
+          {/* Pending Tab */}
+          <TabPanel value={activeTab} index={1}>
+            {pendingPOs.length === 0 ? (
+              <Alert severity="info">No pending purchase orders</Alert>
+            ) : (
+              <TableContainer component={Paper} elevation={0}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>PO Number</TableCell>
+                      <TableCell>Supplier</TableCell>
+                      <TableCell>Total Amount</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Order Date</TableCell>
+                      <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {pendingPOs.map((po) => (
+                      <TableRow key={po._id} hover>
+                        <TableCell>{po.poNumber || 'N/A'}</TableCell>
+                        <TableCell>{po.supplier?.name || 'Unknown'}</TableCell>
+                        <TableCell>${po.totalAmount?.toFixed(2) || '0.00'}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={po.status} 
+                            color={getStatusColor(po.status)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>{format(new Date(po.createdAt), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell align="center">
+                          <Button variant="outlined" size="small">
+                            Edit PO
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </TabPanel>
+
+          {/* Supplier Wise Tab */}
+          <TabPanel value={activeTab} index={2}>
+            {Object.keys(supplierGroups).length === 0 ? (
+              <Alert severity="info">No supplier wise data available</Alert>
+            ) : (
+              <Box>
+                {Object.entries(supplierGroups).map(([supplierId, group]) => (
+                  <Card key={supplierId} sx={{ mb: 2 }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <SupplierIcon color="primary" />
+                          <Typography variant="h6">
+                            {group.supplier?.name || 'Unknown Supplier'}
+                          </Typography>
+                          <Chip 
+                            label={`${group.orders.length} POs`} 
+                            size="small" 
+                            color="primary"
+                          />
+                        </Box>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<AddIcon />}
+                          onClick={() => {
+                            setSelectedSupplier(supplierId);
+                            setNewPOData({ ...newPOData, supplier: supplierId });
+                            setCreatePODialog(true);
+                          }}
+                        >
+                          Create PO
+                        </Button>
+                      </Box>
+
+                      <TableContainer component={Paper} elevation={1}>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>PO Number</TableCell>
+                              <TableCell>Amount</TableCell>
+                              <TableCell>Status</TableCell>
+                              <TableCell>Date</TableCell>
+                              <TableCell>Actions</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {group.orders.map((po) => (
+                              <TableRow key={po._id}>
+                                <TableCell>{po.poNumber || 'N/A'}</TableCell>
+                                <TableCell>${po.totalAmount?.toFixed(2) || '0.00'}</TableCell>
+                                <TableCell>
+                                  <Chip 
+                                    label={po.status} 
+                                    color={getStatusColor(po.status)}
+                                    size="small"
+                                  />
+                                </TableCell>
+                                <TableCell>{format(new Date(po.createdAt), 'dd/MM/yyyy')}</TableCell>
+                                <TableCell>
+                                  <Button variant="text" size="small">
+                                    Edit
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                ))}
               </Box>
             )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setViewDialog(false)}>Close</Button>
-          </DialogActions>
-        </Dialog>
+          </TabPanel>
+        </CardContent>
+      </Card>
 
-        {/* Create PO Dialog */}
-        <Dialog
-          open={createPoDialog}
-          onClose={() => setCreatePoDialog(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>Create Purchase Order</DialogTitle>
-          <DialogContent>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              Selected Indents: {selectedIndents.length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              This will create a purchase order from the selected indents.
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setCreatePoDialog(false)}>Cancel</Button>
-            <Button onClick={handleCreatePO} variant="contained">
-              Create PO
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
-    </LocalizationProvider>
+      {/* Create PO Dialog */}
+      <Dialog open={createPODialog} onClose={() => setCreatePODialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Create New Purchase Order</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Supplier</InputLabel>
+                <Select
+                  value={newPOData.supplier}
+                  onChange={(e) => setNewPOData({ ...newPOData, supplier: e.target.value })}
+                  label="Supplier"
+                >
+                  {suppliers.map((supplier) => (
+                    <MenuItem key={supplier._id} value={supplier._id}>
+                      {supplier.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                type="date"
+                label="Expected Delivery Date"
+                value={newPOData.expectedDeliveryDate}
+                onChange={(e) => setNewPOData({ ...newPOData, expectedDeliveryDate: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Terms & Conditions"
+                multiline
+                rows={2}
+                value={newPOData.terms}
+                onChange={(e) => setNewPOData({ ...newPOData, terms: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Notes"
+                multiline
+                rows={2}
+                value={newPOData.notes}
+                onChange={(e) => setNewPOData({ ...newPOData, notes: e.target.value })}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreatePODialog(false)}>Cancel</Button>
+          <Button 
+            onClick={handleCreatePO}
+            variant="contained"
+            disabled={!newPOData.supplier}
+          >
+            Create PO
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }
 
