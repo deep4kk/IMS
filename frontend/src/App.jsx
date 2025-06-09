@@ -57,7 +57,7 @@ const ProtectedSuppliers = withPermission(Suppliers, '/suppliers');
 const ProtectedWarehouses = withPermission(Warehouses, '/warehouses');
 
 function App() {
-  const { user, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return <div>Loading...</div>;
@@ -67,11 +67,11 @@ function App() {
     <AlertProvider>
     <Routes>
       {/* Public routes */}
-      <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
-      <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
+      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
+      <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
 
       {/* Protected routes */}
-      <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
+      <Route path="/" element={isAuthenticated ? <Layout /> : <Navigate to="/login" />}>
         <Route index element={<ProtectedDashboard />} />
         <Route path="skus" element={<ProtectedSKUManagement />} />
         <Route path="skus/add" element={<AddEditSKU />} />

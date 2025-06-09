@@ -1,57 +1,53 @@
+import React from 'react';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
-import { 
-  Box, 
-  AppBar, 
-  Toolbar, 
-  Drawer, 
-  List, 
-  ListItem, 
-  ListItemButton, 
-  ListItemIcon, 
-  ListItemText, 
-  IconButton, 
-  Typography, 
-  Avatar, 
-  Menu, 
-  MenuItem, 
-  Divider, 
-  useTheme, 
-  useMediaQuery, 
-  Tooltip,
-  Breadcrumbs,
-  Link as MuiLink,
-  CssBaseline,
-  Button,
-  Collapse
-} from '@mui/material';
-import { 
-  Menu as MenuIcon, 
-  Dashboard as DashboardIcon,
-  Inventory as InventoryIcon,
-  ShoppingCart as TransactionsIcon,
-  CompareArrows as AdjustmentsIcon,
-  Business as SuppliersIcon,
-  Warehouse as WarehouseIcon,
-  Link as MappingIcon,
-  Assessment as ReportsIcon,
-  Person as PersonIcon,
-  Logout as LogoutIcon,
-  Settings as SettingsIcon,
-  ChevronLeft as ChevronLeftIcon,
-  NavigateNext as NavigateNextIcon,
-  ExpandLess,
-  ExpandMore,
-  AdminPanelSettings as AdminPanelSettingsIcon,
-  TrendingUp as TrendingUpIcon,
-  Receipt as ReceiptIcon,
-  People as PeopleIcon,
-  Storage as StorageIcon,
-  Adjust as AdjustIcon,
-} from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
-import { motion } from 'framer-motion';
+import Box from '@mui/material/Box';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import Avatar from '@mui/material/Avatar';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Divider from '@mui/material/Divider';
+import useTheme from '@mui/material/styles/useTheme';
+import useMediaQuery from "@mui/material/useMediaQuery";
+import Tooltip from '@mui/material/Tooltip';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
 
+import CssBaseline from '@mui/material/CssBaseline';
+import Button from '@mui/material/Button';
+import Collapse from '@mui/material/Collapse';
+import MenuIcon from '@mui/icons-material/Menu';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
+import BusinessIcon from '@mui/icons-material/Business';
+import WarehouseIcon from '@mui/icons-material/Warehouse';
+import LinkIcon from '@mui/icons-material/Link';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import PersonIcon from '@mui/icons-material/Person';
+import LogoutIcon from '@mui/icons-material/Logout';
+import SettingsIcon from '@mui/icons-material/Settings';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import PeopleIcon from '@mui/icons-material/People';
+import StorageIcon from '@mui/icons-material/Storage';
+import AdjustIcon from '@mui/icons-material/Adjust';
+import styled from '@mui/material/styles/styled';
+import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
 const drawerWidth = 260;
@@ -101,7 +97,7 @@ const navigation = [
   },
   {
     name: 'Purchase',
-    icon: TransactionsIcon,
+    icon: CompareArrowsIcon,
     children: [
       { name: 'Purchase Dashboard', href: '/purchase/dashboard' },
       { name: 'Purchase Order', href: '/purchase/orders' },
@@ -129,12 +125,12 @@ const navigation = [
   },
   {
     name: 'Reports',
-    icon: ReportsIcon,
+    icon: AssessmentIcon,
     href: '/reports',
   },
   {
     name: 'Suppliers',
-    icon: SuppliersIcon,
+    icon: BusinessIcon,
     href: '/suppliers',
   },
   {
@@ -144,7 +140,7 @@ const navigation = [
   },
   {
     name: 'Admin Panel',
-    icon: AdminPanelSettingsIcon,
+    icon: SettingsIcon,
     href: '/admin',
   },
 ];
@@ -238,7 +234,7 @@ const drawer = (
                         fontSize: { xs: '0.875rem', sm: '1rem' }
                       }}
                     />
-                    {openSubmenu[item.name] ? <ExpandLess /> : <ExpandMore />}
+                    {openSubmenu[item.name] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                   </ListItemButton>
                 </ListItem>
                 <Collapse in={openSubmenu[item.name]} timeout="auto" unmountOnExit>

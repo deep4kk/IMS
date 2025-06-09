@@ -44,7 +44,10 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(user);
       setIsAuthenticated(true);
       
-      return { success: true };
+      return { 
+        success: true, 
+        user: user 
+      };
     } catch (error) {
       console.error('Login failed', error);
       return { 

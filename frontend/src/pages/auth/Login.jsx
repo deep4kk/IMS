@@ -55,7 +55,8 @@ function Login() {
         const result = await login(values.email, values.password);
         if (result.success) {
           toast.success('Login successful!');
-          navigate('/');
+          // Navigate to dashboard with user data
+          navigate('/', { state: { user: result.user } });
         } else {
           toast.error(result.message);
         }
