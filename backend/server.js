@@ -12,21 +12,22 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { connectDB } from './config/db.js';
 import userRoutes from './routes/userRoutes.js';
-import skuRoutes from './routes/skuRoutes.js';
 import supplierRoutes from './routes/supplierRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
+import skuRoutes from './routes/skuRoutes.js';
 import warehouseRoutes from './routes/warehouseRoutes.js';
-import transactionRoutes from './routes/transactionRoutes.js';
-import stockAdjustmentRoutes from './routes/stockAdjustmentRoutes.js';
-import vendorMappingRoutes from './routes/vendorMappingRoutes.js';
-import reportRoutes from './routes/reportRoutes.js';
+import purchaseOrderRoutes from './routes/purchaseOrderRoutes.js';
+import purchaseIndentRoutes from './routes/purchaseIndentRoutes.js';
 import salesOrderRoutes from './routes/salesOrderRoutes.js';
 import salesReturnRoutes from './routes/salesReturnRoutes.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
+import stockAdjustmentRoutes from './routes/stockAdjustmentRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
+import vendorMappingRoutes from './routes/vendorMappingRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
-import purchaseIndentRoutes from './routes/purchaseIndentRoutes.js';
-import customerRoutes from './routes/customerRoutes.js';
-import purchaseOrderRoutes from './routes/purchaseOrderRoutes.js'; // Import PO routes
-import { errorHandler, notFound } from './middleware/errorMiddleware.js';
+import permissionRoutes from './routes/permissionRoutes.js';
 
 // Connect to MongoDB
 connectDB();
@@ -44,27 +45,29 @@ if (process.env.NODE_ENV === 'development') {
 
 // API Routes
 app.use('/api/users', userRoutes);
-app.use('/api/skus', skuRoutes);
 app.use('/api/suppliers', supplierRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/skus', skuRoutes);
 app.use('/api/warehouses', warehouseRoutes);
-app.use('/api/transactions', transactionRoutes);
-app.use('/api/stock-adjustments', stockAdjustmentRoutes);
-app.use('/api/vendor-mappings', vendorMappingRoutes);
-app.use('/api/reports', reportRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/purchase-indents', purchaseIndentRoutes);
 app.use('/api/sales-orders', salesOrderRoutes);
 app.use('/api/sales-returns', salesReturnRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/stock-adjustments', stockAdjustmentRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/vendor-mappings', vendorMappingRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/purchase-indents', purchaseIndentRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/purchase-orders', purchaseOrderRoutes); // Register PO routes
+app.use('/api/permissions', permissionRoutes);
 
 // Handle production build
 if (process.env.NODE_ENV === 'production') {
   // Set static folder
   const distPath = path.resolve(__dirname, '../frontend/dist');
   app.use(express.static(distPath));
-  
+
   // Any route that is not api will be redirected to index.html
   app.get('*', (req, res) => {
     res.sendFile(path.resolve(distPath, 'index.html'));

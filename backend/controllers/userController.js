@@ -152,6 +152,7 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (user) {
     user.name = req.body.name || user.name;
     user.email = req.body.email || user.email;
+    user.role = req.body.role || user.role;
 
     const updatedUser = await user.save();
 
@@ -159,9 +160,43 @@ export const updateUser = asyncHandler(async (req, res) => {
       _id: updatedUser._id,
       name: updatedUser.name,
       email: updatedUser.email,
+      role: updatedUser.role,
     });
   } else {
     res.status(404);
     throw new Error('User not found');
+  }
+});
+
+// @desc    Create user by admin
+// @route   POST /api/users/admin/create
+// @access  Private/Admin
+export const createUserByAdmin = asyncHandler(async (req, res) => {
+  const { name, email, password, role } = req.body;
+
+  const userExists = await User.findOne({ email });
+
+  if (userExists) {
+    res.status(400);
+    throw new Error('User already exists');
+  }
+
+  const user = await User.create({
+    name,
+    email,
+    password,
+    role: role || 'user',
+  });
+
+  if (user) {
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+  } else {
+    res.status(400);
+    throw new Error('Invalid user data');
   }
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { 
   Box, 
   AppBar, 
@@ -20,7 +20,10 @@ import {
   useMediaQuery, 
   Tooltip,
   Breadcrumbs,
-  Link as MuiLink
+  Link as MuiLink,
+  CssBaseline,
+  Button,
+  Collapse
 } from '@mui/material';
 import { 
   Menu as MenuIcon, 
@@ -36,7 +39,15 @@ import {
   Logout as LogoutIcon,
   Settings as SettingsIcon,
   ChevronLeft as ChevronLeftIcon,
-  NavigateNext as NavigateNextIcon
+  NavigateNext as NavigateNextIcon,
+  ExpandLess,
+  ExpandMore,
+  AdminPanelSettings as AdminPanelSettingsIcon,
+  TrendingUp as TrendingUpIcon,
+  Receipt as ReceiptIcon,
+  People as PeopleIcon,
+  Storage as StorageIcon,
+  Adjust as AdjustIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
@@ -72,51 +83,96 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   justifyContent: 'space-between',
 }));
 
-const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Purchase', icon: <TransactionsIcon />,
-    children: [
-      { text: 'Purchase Dashboard', path: '/purchase/dashboard' },
-      { text: 'Indent', path: '/purchase/indent' },
-      { text: 'Indent Approval', path: '/purchase/indent-approval' },
-      { text: 'PO', path: '/purchase/po' },
-      { text: 'PO Master', path: '/purchase/master' }, // Added
-      { text: 'Credit/Debit Note', path: '/purchase/credit-debit-note' },
-    ]
+const navigation = [
+  {
+    name: 'Dashboard',
+    icon: DashboardIcon,
+    href: '/',
   },
-  { text: 'Sales', icon: <PersonIcon />,
+  {
+    name: 'Inventory',
+    icon: InventoryIcon,
     children: [
-      { text: 'Sales Dashboard', path: '/sales/dashboard' },
-      { text: 'Sales Order', path: '/sales/orders' },
-      { text: 'SO Master', path: '/sales/master' }, // Added
-      { text: 'Dispatch', path: '/sales/dispatch' },
-      { text: 'Invoice', path: '/sales/invoices' },
-      { text: 'Debit Note', path: '/sales/debit-notes' },
-      { text: 'Sales Returns', path: '/sales/returns' },
-    ]
+      { name: 'SKU Management', href: '/skus' },
+      { name: 'Stock Adjustments', href: '/inventory/adjustments' },
+      { name: 'Transactions', href: '/transactions' },
+      { name: 'SKU to Vendor Mapping', href: '/vendors/sku-mapping' },
+    ],
   },
-  { text: 'SKU Management', icon: <InventoryIcon />, path: '/skus' },
-  { text: 'Transactions', icon: <TransactionsIcon />, path: '/transactions' },
-  { text: 'Stock Adjustments', icon: <AdjustmentsIcon />, path: '/stock-adjustments' },
-  { text: 'Suppliers', icon: <SuppliersIcon />, path: '/suppliers' },
-  { text: 'Warehouses', icon: <WarehouseIcon />, path: '/warehouses' },
-  { text: 'SKU-Vendor Mapping', icon: <MappingIcon />, path: '/sku-vendor-mapping' },
-  { text: 'Reports', icon: <ReportsIcon />, path: '/reports' },
-  { text: 'Customers', icon: <PersonIcon />, path: '/customers' },
+  {
+    name: 'Purchase',
+    icon: TransactionsIcon,
+    children: [
+      { name: 'Purchase Dashboard', href: '/purchase/dashboard' },
+      { name: 'Purchase Order', href: '/purchase/orders' },
+      { name: 'Purchase Indent', href: '/purchase/indent' },
+      { name: 'Indent Approval', href: '/purchase/indent-approval' },
+      { name: 'Credit/Debit Note', href: '/purchase/credit-debit-note' },
+    ],
+  },
+  {
+    name: 'Sales',
+    icon: PersonIcon,
+    children: [
+      { name: 'Sales Dashboard', href: '/sales/dashboard' },
+      { name: 'Sales Order', href: '/sales/orders' },
+      { name: 'Sales Return', href: '/sales/returns' },
+      { name: 'Invoice', href: '/sales/invoice' },
+      { name: 'Dispatch', href: '/sales/dispatch' },
+      { name: 'Sales Debit Note', href: '/sales/debit-note' },
+    ],
+  },
+  {
+    name: 'Customers',
+    icon: PersonIcon,
+    href: '/customers',
+  },
+  {
+    name: 'Reports',
+    icon: ReportsIcon,
+    href: '/reports',
+  },
+  {
+    name: 'Suppliers',
+    icon: SuppliersIcon,
+    href: '/suppliers',
+  },
+  {
+    name: 'Warehouses',
+    icon: WarehouseIcon,
+    href: '/warehouses',
+  },
+  {
+    name: 'Admin Panel',
+    icon: AdminPanelSettingsIcon,
+    href: '/admin',
+  },
 ];
 
 function Layout() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [openSubmenu, setOpenSubmenu] = useState({});
+  const { currentUser: user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [open, setOpen] = useState(!isMobile);
   const [anchorEl, setAnchorEl] = useState(null);
-  const [openMenus, setOpenMenus] = useState({});
-  const { currentUser, logout } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
 
   const handleDrawerToggle = () => {
-    setOpen(!open);
+    setMobileOpen(!mobileOpen);
+  };
+
+  const handleSubmenuToggle = (name) => {
+    setOpenSubmenu(prev => ({
+      ...prev,
+      [name]: !prev[name]
+    }));
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
   const handleProfileMenuOpen = (event) => {
@@ -127,264 +183,271 @@ function Layout() {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
-    handleMenuClose();
-    logout();
-    navigate('/login');
-  };
-
-  const getBreadcrumbs = () => {
+    const getPageTitle = () => {
     const pathnames = location.pathname.split('/').filter((x) => x);
 
     if (pathnames.length === 0) {
-      return [{ name: 'Dashboard', path: '/' }];
+      return 'Dashboard';
     }
 
-    const breadcrumbs = [{ name: 'Dashboard', path: '/' }];
-
-    let currentPath = '';
-    pathnames.forEach((value, index) => {
-      currentPath += `/${value}`;
-
-      // Format the breadcrumb name
-      let name = value.charAt(0).toUpperCase() + value.slice(1);
-      name = name.replace(/-/g, ' ');
+    let title = pathnames[pathnames.length - 1];
+    title = title.charAt(0).toUpperCase() + title.slice(1);
+    title = title.replace(/-/g, ' ');
 
       // Handle special cases
-      if (name === 'Skus') name = 'SKU Management';
-      if (name === 'Edit' && index > 0) name = `Edit ${pathnames[index-1].slice(0, -1).toUpperCase()}`;
-      if (name === 'Add' && index > 0) name = `Add ${pathnames[index-1].slice(0, -1).toUpperCase()}`;
-      if (name === 'Id') name = 'Details';
+      if (title === 'Skus') title = 'SKU Management';
+      if (title === 'Po') title = 'Purchase Order';
+      if (title === 'So') title = 'Sales Order';
+      if (title === 'Id') title = 'Details';
 
-      breadcrumbs.push({ name, path: currentPath });
-    });
-
-    return breadcrumbs;
+    return title;
   };
 
-  const breadcrumbs = getBreadcrumbs();
 
-  return (
-    <Box sx={{ display: 'flex' }}>
-      <AppBar 
-        position="fixed" 
-        sx={{ 
-          zIndex: theme.zIndex.drawer + 1,
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.08)',
-          bgcolor: 'background.paper',
-          color: 'text.primary',
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="toggle drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2 }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ fontWeight: 600, flexGrow: 1 }}>
-            Inventory Management System
-          </Typography>
-          <IconButton
-            size="large"
-            edge="end"
-            aria-label="account"
-            aria-haspopup="true"
-            onClick={handleProfileMenuOpen}
-            color="inherit"
-          >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-              {currentUser?.name.charAt(0)}
-            </Avatar>
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
-            }}
-            keepMounted
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-          >
-            <MenuItem onClick={() => {
-              handleMenuClose();
-              navigate('/profile');
-            }}>
-              <ListItemIcon>
-                <PersonIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Profile</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={() => {
-              handleMenuClose();
-              navigate('/settings');
-            }}>
-              <ListItemIcon>
-                <SettingsIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Settings</ListItemText>
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Logout</ListItemText>
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
-      <Drawer
-        variant={isMobile ? "temporary" : "persistent"}
-        open={open}
-        onClose={isMobile ? handleDrawerToggle : undefined}
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-            bgcolor: 'background.paper',
-            boxShadow: 'none',
-            borderRight: '1px solid rgba(0, 0, 0, 0.08)',
-          },
-        }}
-      >
-        <DrawerHeader>
-          <Typography variant="h6" component="div" sx={{ fontWeight: 600, pl: 2 }}>
-            Inventory Pro
-          </Typography>
-          {!isMobile && (
-            <IconButton onClick={handleDrawerToggle}>
-              <ChevronLeftIcon />
-            </IconButton>
-          )}
-        </DrawerHeader>
-        <Divider />
-        <List>
-          {menuItems.map((item) => {
-            if (item.children) {
-              const isParentActive = item.children.some(child => location.pathname.startsWith(child.path));
-              return (
-                <Box key={item.text}>
-                  <ListItem disablePadding>
-                    <ListItemButton
-                      onClick={() => setOpenMenus(prev => ({ ...prev, [item.text]: !prev[item.text] }))}
-                      sx={{
-                        py: 1.2,
-                        position: 'relative',
-                        bgcolor: isParentActive ? 'action.selected' : undefined,
+const drawer = (
+    <div>
+      <Toolbar>
+        <Typography variant="h6" noWrap component="div" sx={{ 
+          fontSize: { xs: '1rem', sm: '1.25rem' },
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          Inventory System
+        </Typography>
+      </Toolbar>
+      <Divider />
+      <List sx={{ px: { xs: 1, sm: 0 } }}>
+        {navigation.map((item) => (
+          <React.Fragment key={item.name}>
+            {item.children ? (
+              <>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => handleSubmenuToggle(item.name)}
+                    sx={{ 
+                      py: { xs: 0.5, sm: 1 },
+                      minHeight: { xs: 40, sm: 48 }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: { xs: 35, sm: 56 } }}>
+                      <item.icon sx={{ fontSize: { xs: 18, sm: 24 } }} />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={item.name} 
+                      primaryTypographyProps={{
+                        fontSize: { xs: '0.875rem', sm: '1rem' }
                       }}
-                    >
-                      <ListItemIcon sx={{ color: isParentActive ? 'primary.main' : 'text.secondary' }}>
-                        {item.icon}
-                      </ListItemIcon>
-                      <ListItemText primary={item.text} primaryTypographyProps={{ fontWeight: isParentActive ? 600 : 400 }} />
-                    </ListItemButton>
-                  </ListItem>
-                  {openMenus[item.text] && (
-                    <List component="div" disablePadding sx={{ pl: 4 }}>
-                      {item.children.map(child => (
-                        <ListItem key={child.text} disablePadding>
-                          <ListItemButton
-                            onClick={() => navigate(child.path)}
-                            sx={{
-                              py: 1,
-                              bgcolor: location.pathname === child.path ? 'action.selected' : undefined,
+                    />
+                    {openSubmenu[item.name] ? <ExpandLess /> : <ExpandMore />}
+                  </ListItemButton>
+                </ListItem>
+                <Collapse in={openSubmenu[item.name]} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {item.children.map((child) => (
+                      <ListItem key={child.name} disablePadding>
+                        <ListItemButton
+                          sx={{ 
+                            pl: { xs: 3, sm: 4 },
+                            py: { xs: 0.25, sm: 0.5 },
+                            minHeight: { xs: 32, sm: 40 }
+                          }}
+                          component={Link}
+                          to={child.href}
+                          selected={location.pathname === child.href}
+                          onClick={() => isMobile && setMobileOpen(false)}
+                        >
+                          <ListItemText 
+                            primary={child.name}
+                            primaryTypographyProps={{
+                              fontSize: { xs: '0.8rem', sm: '0.875rem' }
                             }}
-                          >
-                            <ListItemText primary={child.text} primaryTypographyProps={{ fontWeight: location.pathname === child.path ? 600 : 400 }} />
-                          </ListItemButton>
-                        </ListItem>
-                      ))}
-                    </List>
-                  )}
-                </Box>
-              );
-            }
-            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-            return (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton 
-                  component={motion.div}
-                  whileHover={{ x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate(item.path)}
+                          />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Collapse>
+              </>
+            ) : (
+              <ListItem disablePadding>
+                <ListItemButton
+                  component={Link}
+                  to={item.href}
+                  selected={location.pathname === item.href}
+                  onClick={() => isMobile && setMobileOpen(false)}
                   sx={{ 
-                    py: 1.2,
-                    position: 'relative',
-                    ...(isActive && {
-                      bgcolor: 'action.selected',
-                      '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 4,
-                        bgcolor: 'primary.main',
-                      },
-                    }),
+                    py: { xs: 0.5, sm: 1 },
+                    minHeight: { xs: 40, sm: 48 }
                   }}
                 >
-                  <ListItemIcon sx={{ color: isActive ? 'primary.main' : 'text.secondary' }}>
-                    {item.icon}
+                  <ListItemIcon sx={{ minWidth: { xs: 35, sm: 56 } }}>
+                    <item.icon sx={{ fontSize: { xs: 18, sm: 24 } }} />
                   </ListItemIcon>
                   <ListItemText 
-                    primary={item.text} 
-                    primaryTypographyProps={{ 
-                      fontWeight: isActive ? 600 : 400,
-                      color: isActive ? 'primary.main' : 'text.primary'
+                    primary={item.name}
+                    primaryTypographyProps={{
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
                     }}
                   />
                 </ListItemButton>
               </ListItem>
-            );
-          })}
-        </List>
-      </Drawer>
-      <Main open={open} isMobile={isMobile}>
-        <Toolbar />
-        <Box sx={{ mb: 3 }}>
-          <Breadcrumbs 
-            separator={<NavigateNextIcon fontSize="small" />} 
-            aria-label="breadcrumb"
+            )}
+          </React.Fragment>
+        ))}
+      </List>
+    </div>
+  );
+
+return (
+    <Box sx={{ display: 'flex' }}>
+      <CssBaseline />
+      <AppBar
+        position="fixed"
+        sx={{
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          ml: { sm: `${drawerWidth}px` },
+        }}
+      >
+        <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { sm: 'none' } }}
           >
-            {breadcrumbs.map((crumb, index) => {
-              const isLast = index === breadcrumbs.length - 1;
-              return isLast ? (
-                <Typography color="text.primary" key={crumb.path} sx={{ fontWeight: 600 }}>
-                  {crumb.name}
-                </Typography>
-              ) : (
-                <MuiLink
-                  component={motion.a}
-                  whileHover={{ scale: 1.05 }}
-                  underline="hover"
-                  color="inherit"
-                  href="#"
-                  key={crumb.path}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate(crumb.path);
-                  }}
-                >
-                  {crumb.name}
-                </MuiLink>
-              );
-            })}
-          </Breadcrumbs>
-        </Box>
+            <MenuIcon />
+          </IconButton>
+          <Typography 
+            variant="h6" 
+            noWrap 
+            component="div" 
+            sx={{ 
+              flexGrow: 1,
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+          >
+            {getPageTitle()}
+          </Typography>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: { xs: 1, sm: 2 },
+            flexShrink: 0
+          }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                display: { xs: 'none', sm: 'block' },
+                fontSize: { sm: '0.875rem' }
+              }}
+            >
+              Welcome, {user?.name}
+            </Typography>
+             <IconButton
+                size="large"
+                edge="end"
+                aria-label="account"
+                aria-haspopup="true"
+                onClick={handleProfileMenuOpen}
+                color="inherit"
+              >
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+                  {user?.name.charAt(0)}
+                </Avatar>
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+              >
+                <MenuItem onClick={() => {
+                  handleMenuClose();
+                  navigate('/profile');
+                }}>
+                  <ListItemIcon>
+                    <PersonIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Profile</ListItemText>
+                </MenuItem>
+                <MenuItem onClick={() => {
+                  handleMenuClose();
+                  navigate('/settings');
+                }}>
+                  <ListItemIcon>
+                    <SettingsIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Settings</ListItemText>
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={handleLogout}>
+                  <ListItemIcon>
+                    <LogoutIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Logout</ListItemText>
+                </MenuItem>
+              </Menu>
+          </Box>
+        </Toolbar>
+      </AppBar>
+      <Box
+        component="nav"
+        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        aria-label="navigation"
+      >
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{
+            keepMounted: true,
+          }}
+          sx={{
+            display: { xs: 'block', sm: 'none' },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+              maxWidth: '80vw'
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: 'none', sm: 'block' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+          }}
+          open
+        >
+          {drawer}
+        </Drawer>
+      </Box>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: { xs: 1, sm: 2, md: 3 },
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          minHeight: '100vh',
+          bgcolor: 'background.default'
+        }}
+      >
+        <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }} />
         <Outlet />
-      </Main>
+      </Box>
     </Box>
   );
 }
