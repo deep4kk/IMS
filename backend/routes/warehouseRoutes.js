@@ -2,10 +2,10 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
 import {
   getWarehouses,
-  createWarehouse,
   getWarehouseById,
+  createWarehouse,
   updateWarehouse,
-  deleteWarehouse,
+  deleteWarehouse
 } from '../controllers/warehouseController.js';
 
 const router = express.Router();

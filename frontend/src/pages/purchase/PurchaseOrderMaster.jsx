@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -40,7 +39,8 @@ import {
   FilterList as FilterIcon,
   Search as SearchIcon,
   PictureAsPdf as PdfIcon,
-  Business as BusinessIcon
+  Business as BusinessIcon,
+  GetApp as GetAppIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -217,13 +217,25 @@ function PurchaseOrderMaster() {
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
             Purchase Order Management
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreatePoDialog(true)}
-          >
-            Create PO
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<GetAppIcon />}
+              onClick={() => {
+                // Export all purchase orders functionality
+                alert('Export all purchase orders feature coming soon');
+              }}
+            >
+              Export All
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setCreatePoDialog(true)}
+            >
+              Create PO
+            </Button>
+          </Box>
         </Paper>
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
