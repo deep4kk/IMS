@@ -14,7 +14,7 @@ export const getPendingIndentsForApproval = asyncHandler(async (req, res) => {
   const pendingIndents = await PurchaseIndent.find({ 
     status: 'pending_approval' 
   })
-    .populate('requestedBy', 'name email')
+    .populate('createdBy', 'name email')
     .populate('items.sku', 'name sku')
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -41,7 +41,7 @@ export const getApprovedIndents = asyncHandler(async (req, res) => {
   const approvedIndents = await PurchaseIndent.find({
     status: { $in: ['approved', 'rejected'] }
   })
-    .populate('requestedBy', 'name email')
+    .populate('createdBy', 'name email')
     .populate('approvedBy', 'name email')
     .populate('items.sku', 'name sku')
     .sort({ approvedAt: -1 })
@@ -95,7 +95,7 @@ export const approveIndent = asyncHandler(async (req, res) => {
   });
 
   const populatedIndent = await PurchaseIndent.findById(indent._id)
-    .populate('requestedBy', 'name email')
+    .populate('createdBy', 'name email')
     .populate('approvedBy', 'name email')
     .populate('items.sku', 'name sku');
 
@@ -137,7 +137,7 @@ export const rejectIndent = asyncHandler(async (req, res) => {
   });
 
   const populatedIndent = await PurchaseIndent.findById(indent._id)
-    .populate('requestedBy', 'name email')
+    .populate('createdBy', 'name email')
     .populate('approvedBy', 'name email')
     .populate('items.sku', 'name sku');
 

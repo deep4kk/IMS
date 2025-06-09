@@ -6,8 +6,23 @@ import Warehouse from '../models/warehouseModel.js';
 // @route   GET /api/warehouses
 // @access  Private
 export const getWarehouses = asyncHandler(async (req, res) => {
-  const warehouses = await Warehouse.find({});
-  res.json(warehouses);
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 50;
+  const skip = (page - 1) * limit;
+
+  const warehouses = await Warehouse.find({})
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Warehouse.countDocuments();
+
+  res.json({
+    warehouses,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit),
+    totalWarehouses: total
+  });
 });
 
 // @desc    Get single warehouse
@@ -32,31 +47,29 @@ export const createWarehouse = asyncHandler(async (req, res) => {
     name,
     code,
     address,
-    city,
-    state,
-    country,
-    pincode,
-    phone,
-    email,
-    managerName,
+    contactPerson,
+    contactPhone,
+    contactEmail,
     capacity,
-    type
+    currentUtilization
   } = req.body;
+
+  // Check if warehouse code already exists
+  const warehouseExists = await Warehouse.findOne({ code });
+  if (warehouseExists) {
+    res.status(400);
+    throw new Error('Warehouse with this code already exists');
+  }
 
   const warehouse = await Warehouse.create({
     name,
     code,
     address,
-    city,
-    state,
-    country,
-    pincode,
-    phone,
-    email,
-    managerName,
+    contactPerson,
+    contactPhone,
+    contactEmail,
     capacity,
-    type,
-    createdBy: req.user._id
+    currentUtilization: currentUtilization || 0
   });
 
   res.status(201).json(warehouse);
@@ -73,12 +86,36 @@ export const updateWarehouse = asyncHandler(async (req, res) => {
     throw new Error('Warehouse not found');
   }
 
-  const updatedWarehouse = await Warehouse.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    { new: true }
-  );
+  const {
+    name,
+    code,
+    address,
+    contactPerson,
+    contactPhone,
+    contactEmail,
+    capacity,
+    currentUtilization
+  } = req.body;
 
+  // Check if new code conflicts with existing warehouse
+  if (code && code !== warehouse.code) {
+    const existingWarehouse = await Warehouse.findOne({ code });
+    if (existingWarehouse) {
+      res.status(400);
+      throw new Error('Warehouse with this code already exists');
+    }
+  }
+
+  warehouse.name = name || warehouse.name;
+  warehouse.code = code || warehouse.code;
+  warehouse.address = address || warehouse.address;
+  warehouse.contactPerson = contactPerson || warehouse.contactPerson;
+  warehouse.contactPhone = contactPhone || warehouse.contactPhone;
+  warehouse.contactEmail = contactEmail || warehouse.contactEmail;
+  warehouse.capacity = capacity || warehouse.capacity;
+  warehouse.currentUtilization = currentUtilization !== undefined ? currentUtilization : warehouse.currentUtilization;
+
+  const updatedWarehouse = await warehouse.save();
   res.json(updatedWarehouse);
 });
 
