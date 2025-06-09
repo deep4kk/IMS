@@ -34,8 +34,8 @@ import SkuVendorMapping from './pages/vendors/SkuVendorMapping';
 import { AlertProvider } from './context/AlertContext';
 import withPermission from './components/common/withPermission';
 
-// Wrap components with permission checking
-const ProtectedDashboard = withPermission(Dashboard, '/');
+// Wrap components with permission checking using correct route paths
+const ProtectedDashboard = withPermission(Dashboard, '/dashboard');
 const ProtectedSKUManagement = withPermission(SKUManagement, '/skus');
 const ProtectedStockAdjustments = withPermission(StockAdjustments, '/inventory/adjustments');
 const ProtectedTransactions = withPermission(Transactions, '/transactions');
@@ -55,56 +55,85 @@ const ProtectedCustomers = withPermission(Customers, '/customers');
 const ProtectedReports = withPermission(Reports, '/reports');
 const ProtectedSuppliers = withPermission(Suppliers, '/suppliers');
 const ProtectedWarehouses = withPermission(Warehouses, '/warehouses');
+const ProtectedAdminPanel = withPermission(AdminPanel, '/admin');
 
 function App() {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '18px'
+      }}>
+        Loading...
+      </div>
+    );
   }
 
   return (
     <AlertProvider>
-    <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
-      <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
+        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
 
-      {/* Protected routes */}
-      <Route path="/" element={isAuthenticated ? <Layout /> : <Navigate to="/login" />}>
-        <Route index element={<ProtectedDashboard />} />
-        <Route path="skus" element={<ProtectedSKUManagement />} />
-        <Route path="skus/add" element={<AddEditSKU />} />
-        <Route path="skus/edit/:id" element={<AddEditSKU />} />
-        <Route path="skus/:id" element={<SKUDetails />} />
-        <Route path="suppliers" element={<ProtectedSuppliers />} />
-        <Route path="suppliers/add" element={<AddEditSupplier />} />
-        <Route path="suppliers/edit/:id" element={<AddEditSupplier />} />
-        <Route path="suppliers/:id" element={<SupplierDetail />} />
-        <Route path="customers" element={<ProtectedCustomers />} />
-        <Route path="warehouses" element={<ProtectedWarehouses />} />
-        <Route path="warehouses/add" element={<AddEditWarehouse />} />
-        <Route path="warehouses/edit/:id" element={<AddEditWarehouse />} />
-        <Route path="warehouses/:id" element={<WarehouseDetail />} />
-        <Route path="inventory/adjustments" element={<ProtectedStockAdjustments />} />
-        <Route path="transactions" element={<ProtectedTransactions />} />
-        <Route path="reports" element={<ProtectedReports />} />
-        <Route path="admin" element={<AdminPanel />} />
-        <Route path="purchase/dashboard" element={<ProtectedPurchaseDashboard />} />
-        <Route path="purchase/orders" element={<ProtectedPO />} />
-        <Route path="purchase/indent" element={<ProtectedIndent />} />
-        <Route path="purchase/indent-approval" element={<ProtectedIndentApproval />} />
-        <Route path="purchase/credit-debit-note" element={<ProtectedCreditDebitNote />} />
-        <Route path="sales/dashboard" element={<ProtectedSalesDashboard />} />
-        <Route path="sales/orders" element={<ProtectedSalesOrder />} />
-        <Route path="sales/returns" element={<ProtectedSalesReturn />} />
-        <Route path="sales/invoice" element={<ProtectedInvoice />} />
-        <Route path="sales/dispatch" element={<ProtectedDispatch />} />
-        <Route path="sales/debit-note" element={<ProtectedSalesDebitNote />} />
-        <Route path="vendors/sku-mapping" element={<ProtectedSkuVendorMapping />} />
-      </Route>
-</Routes>
-</AlertProvider>
+        {/* Protected routes */}
+        <Route path="/" element={isAuthenticated ? <Layout /> : <Navigate to="/login" />}>
+          <Route index element={<ProtectedDashboard />} />
+          
+          {/* SKU Management */}
+          <Route path="skus" element={<ProtectedSKUManagement />} />
+          <Route path="skus/add" element={withPermission(AddEditSKU, '/skus')({ mode: 'add' })} />
+          <Route path="skus/edit/:id" element={withPermission(AddEditSKU, '/skus')({ mode: 'edit' })} />
+          <Route path="skus/:id" element={withPermission(SKUDetails, '/skus')()} />
+          
+          {/* Suppliers */}
+          <Route path="suppliers" element={<ProtectedSuppliers />} />
+          <Route path="suppliers/add" element={withPermission(AddEditSupplier, '/suppliers')({ mode: 'add' })} />
+          <Route path="suppliers/edit/:id" element={withPermission(AddEditSupplier, '/suppliers')({ mode: 'edit' })} />
+          <Route path="suppliers/:id" element={withPermission(SupplierDetail, '/suppliers')()} />
+          
+          {/* Other routes */}
+          <Route path="customers" element={<ProtectedCustomers />} />
+          <Route path="warehouses" element={<ProtectedWarehouses />} />
+          <Route path="warehouses/add" element={withPermission(AddEditWarehouse, '/warehouses')({ mode: 'add' })} />
+          <Route path="warehouses/edit/:id" element={withPermission(AddEditWarehouse, '/warehouses')({ mode: 'edit' })} />
+          <Route path="warehouses/:id" element={withPermission(WarehouseDetail, '/warehouses')()} />
+          
+          {/* Inventory */}
+          <Route path="inventory/adjustments" element={<ProtectedStockAdjustments />} />
+          
+          {/* Transactions & Reports */}
+          <Route path="transactions" element={<ProtectedTransactions />} />
+          <Route path="reports" element={<ProtectedReports />} />
+          
+          {/* Admin */}
+          <Route path="admin" element={<ProtectedAdminPanel />} />
+          
+          {/* Purchase Module */}
+          <Route path="purchase/dashboard" element={<ProtectedPurchaseDashboard />} />
+          <Route path="purchase/orders" element={<ProtectedPO />} />
+          <Route path="purchase/indent" element={<ProtectedIndent />} />
+          <Route path="purchase/indent-approval" element={<ProtectedIndentApproval />} />
+          <Route path="purchase/credit-debit-note" element={<ProtectedCreditDebitNote />} />
+          
+          {/* Sales Module */}
+          <Route path="sales/dashboard" element={<ProtectedSalesDashboard />} />
+          <Route path="sales/orders" element={<ProtectedSalesOrder />} />
+          <Route path="sales/returns" element={<ProtectedSalesReturn />} />
+          <Route path="sales/invoice" element={<ProtectedInvoice />} />
+          <Route path="sales/dispatch" element={<ProtectedDispatch />} />
+          <Route path="sales/debit-note" element={<ProtectedSalesDebitNote />} />
+          
+          {/* Vendors */}
+          <Route path="vendors/sku-mapping" element={<ProtectedSkuVendorMapping />} />
+        </Route>
+      </Routes>
+    </AlertProvider>
   );
 }
 

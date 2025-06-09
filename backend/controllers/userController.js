@@ -13,10 +13,22 @@ export const authUser = asyncHandler(async (req, res) => {
 
   // Check if user exists and password matches
   if (user && (await user.matchPassword(password))) {
+    // Get user permissions
+    const permissions = await user.getPermissions();
+    
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+      permissions: permissions.map(p => ({
+        _id: p._id,
+        name: p.name,
+        description: p.description,
+        module: p.module,
+        action: p.action
+      })),
       token: generateToken(user._id),
     });
   } else {
@@ -47,10 +59,22 @@ export const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
+    // Get user permissions (will be empty for new user)
+    const permissions = await user.getPermissions();
+    
     res.status(201).json({
       _id: user._id,
       name: user.name,
       email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+      permissions: permissions.map(p => ({
+        _id: p._id,
+        name: p.name,
+        description: p.description,
+        module: p.module,
+        action: p.action
+      })),
       token: generateToken(user._id),
     });
   } else {
@@ -66,10 +90,22 @@ export const getUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
+    // Get user permissions
+    const permissions = await user.getPermissions();
+    
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+      permissions: permissions.map(p => ({
+        _id: p._id,
+        name: p.name,
+        description: p.description,
+        module: p.module,
+        action: p.action
+      })),
     });
   } else {
     res.status(404);
@@ -93,11 +129,23 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
     }
 
     const updatedUser = await user.save();
+    
+    // Get user permissions
+    const permissions = await updatedUser.getPermissions();
 
     res.json({
       _id: updatedUser._id,
       name: updatedUser.name,
       email: updatedUser.email,
+      role: updatedUser.role,
+      isActive: updatedUser.isActive,
+      permissions: permissions.map(p => ({
+        _id: p._id,
+        name: p.name,
+        description: p.description,
+        module: p.module,
+        action: p.action
+      })),
       token: generateToken(updatedUser._id),
     });
   } else {
@@ -136,7 +184,19 @@ export const getUserById = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id).select('-password');
 
   if (user) {
-    res.json(user);
+    // Get user permissions
+    const permissions = await user.getPermissions();
+    
+    res.json({
+      ...user.toObject(),
+      permissions: permissions.map(p => ({
+        _id: p._id,
+        name: p.name,
+        description: p.description,
+        module: p.module,
+        action: p.action
+      })),
+    });
   } else {
     res.status(404);
     throw new Error('User not found');
@@ -153,6 +213,7 @@ export const updateUser = asyncHandler(async (req, res) => {
     user.name = req.body.name || user.name;
     user.email = req.body.email || user.email;
     user.role = req.body.role || user.role;
+    user.isActive = req.body.isActive !== undefined ? req.body.isActive : user.isActive;
 
     const updatedUser = await user.save();
 
@@ -161,42 +222,10 @@ export const updateUser = asyncHandler(async (req, res) => {
       name: updatedUser.name,
       email: updatedUser.email,
       role: updatedUser.role,
+      isActive: updatedUser.isActive,
     });
   } else {
     res.status(404);
     throw new Error('User not found');
-  }
-});
-
-// @desc    Create user by admin
-// @route   POST /api/users/admin/create
-// @access  Private/Admin
-export const createUserByAdmin = asyncHandler(async (req, res) => {
-  const { name, email, password, role } = req.body;
-
-  const userExists = await User.findOne({ email });
-
-  if (userExists) {
-    res.status(400);
-    throw new Error('User already exists');
-  }
-
-  const user = await User.create({
-    name,
-    email,
-    password,
-    role: role || 'user',
-  });
-
-  if (user) {
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    });
-  } else {
-    res.status(400);
-    throw new Error('Invalid user data');
   }
 });

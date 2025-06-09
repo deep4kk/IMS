@@ -20,7 +20,6 @@ import useTheme from '@mui/material/styles/useTheme';
 import useMediaQuery from "@mui/material/useMediaQuery";
 import Tooltip from '@mui/material/Tooltip';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
-
 import CssBaseline from '@mui/material/CssBaseline';
 import Button from '@mui/material/Button';
 import Collapse from '@mui/material/Collapse';
@@ -46,6 +45,10 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import PeopleIcon from '@mui/icons-material/People';
 import StorageIcon from '@mui/icons-material/Storage';
 import AdjustIcon from '@mui/icons-material/Adjust';
+import NoteAddIcon from '@mui/icons-material/NoteAdd';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import DescriptionIcon from '@mui/icons-material/Description';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import styled from '@mui/material/styles/styled';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -89,33 +92,33 @@ const navigation = [
     name: 'Inventory',
     icon: InventoryIcon,
     children: [
-      { name: 'SKU Management', href: '/skus' },
-      { name: 'Stock Adjustments', href: '/inventory/adjustments' },
-      { name: 'Transactions', href: '/transactions' },
-      { name: 'SKU to Vendor Mapping', href: '/vendors/sku-mapping' },
+      { name: 'SKU Management', href: '/skus', icon: StorageIcon },
+      { name: 'Stock Adjustments', href: '/inventory/adjustments', icon: AdjustIcon },
+      { name: 'Transactions', href: '/transactions', icon: CompareArrowsIcon },
+      { name: 'SKU to Vendor Mapping', href: '/vendors/sku-mapping', icon: LinkIcon },
     ],
   },
   {
     name: 'Purchase',
-    icon: CompareArrowsIcon,
+    icon: ShoppingCartIcon,
     children: [
-      { name: 'Purchase Dashboard', href: '/purchase/dashboard' },
-      { name: 'Purchase Order', href: '/purchase/orders' },
-      { name: 'Purchase Indent', href: '/purchase/indent' },
-      { name: 'Indent Approval', href: '/purchase/indent-approval' },
-      { name: 'Credit/Debit Note', href: '/purchase/credit-debit-note' },
+      { name: 'Purchase Dashboard', href: '/purchase/dashboard', icon: TrendingUpIcon },
+      { name: 'Purchase Order', href: '/purchase/orders', icon: AssignmentIcon },
+      { name: 'Purchase Indent', href: '/purchase/indent', icon: NoteAddIcon },
+      { name: 'Indent Approval', href: '/purchase/indent-approval', icon: AdminPanelSettingsIcon },
+      { name: 'Credit/Debit Note', href: '/purchase/credit-debit-note', icon: DescriptionIcon },
     ],
   },
   {
     name: 'Sales',
-    icon: PersonIcon,
+    icon: PeopleIcon,
     children: [
-      { name: 'Sales Dashboard', href: '/sales/dashboard' },
-      { name: 'Sales Order', href: '/sales/orders' },
-      { name: 'Sales Return', href: '/sales/returns' },
-      { name: 'Invoice', href: '/sales/invoice' },
-      { name: 'Dispatch', href: '/sales/dispatch' },
-      { name: 'Sales Debit Note', href: '/sales/debit-note' },
+      { name: 'Sales Dashboard', href: '/sales/dashboard', icon: TrendingUpIcon },
+      { name: 'Sales Order', href: '/sales/orders', icon: AssignmentIcon },
+      { name: 'Sales Return', href: '/sales/returns', icon: CompareArrowsIcon },
+      { name: 'Invoice', href: '/sales/invoice', icon: ReceiptIcon },
+      { name: 'Dispatch', href: '/sales/dispatch', icon: LocalShippingIcon },
+      { name: 'Sales Debit Note', href: '/sales/debit-note', icon: DescriptionIcon },
     ],
   },
   {
@@ -140,7 +143,7 @@ const navigation = [
   },
   {
     name: 'Admin Panel',
-    icon: SettingsIcon,
+    icon: AdminPanelSettingsIcon,
     href: '/admin',
   },
 ];
@@ -179,7 +182,7 @@ function Layout() {
     setAnchorEl(null);
   };
 
-    const getPageTitle = () => {
+  const getPageTitle = () => {
     const pathnames = location.pathname.split('/').filter((x) => x);
 
     if (pathnames.length === 0) {
@@ -190,17 +193,16 @@ function Layout() {
     title = title.charAt(0).toUpperCase() + title.slice(1);
     title = title.replace(/-/g, ' ');
 
-      // Handle special cases
-      if (title === 'Skus') title = 'SKU Management';
-      if (title === 'Po') title = 'Purchase Order';
-      if (title === 'So') title = 'Sales Order';
-      if (title === 'Id') title = 'Details';
+    // Handle special cases
+    if (title === 'Skus') title = 'SKU Management';
+    if (title === 'Po') title = 'Purchase Order';
+    if (title === 'So') title = 'Sales Order';
+    if (title === 'Id') title = 'Details';
 
     return title;
   };
 
-
-const drawer = (
+  const drawer = (
     <div>
       <Toolbar>
         <Typography variant="h6" noWrap component="div" sx={{ 
@@ -252,6 +254,9 @@ const drawer = (
                           selected={location.pathname === child.href}
                           onClick={() => isMobile && setMobileOpen(false)}
                         >
+                          <ListItemIcon sx={{ minWidth: { xs: 35, sm: 40 } }}>
+                            <child.icon sx={{ fontSize: { xs: 16, sm: 20 } }} />
+                          </ListItemIcon>
                           <ListItemText 
                             primary={child.name}
                             primaryTypographyProps={{
@@ -294,7 +299,7 @@ const drawer = (
     </div>
   );
 
-return (
+  return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       <AppBar
@@ -342,58 +347,58 @@ return (
             >
               Welcome, {user?.name}
             </Typography>
-             <IconButton
-                size="large"
-                edge="end"
-                aria-label="account"
-                aria-haspopup="true"
-                onClick={handleProfileMenuOpen}
-                color="inherit"
-              >
-                <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-                  {user?.name.charAt(0)}
-                </Avatar>
-              </IconButton>
-              <Menu
-                anchorEl={anchorEl}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'right',
-                }}
-                keepMounted
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                open={Boolean(anchorEl)}
-                onClose={handleMenuClose}
-              >
-                <MenuItem onClick={() => {
-                  handleMenuClose();
-                  navigate('/profile');
-                }}>
-                  <ListItemIcon>
-                    <PersonIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Profile</ListItemText>
-                </MenuItem>
-                <MenuItem onClick={() => {
-                  handleMenuClose();
-                  navigate('/settings');
-                }}>
-                  <ListItemIcon>
-                    <SettingsIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Settings</ListItemText>
-                </MenuItem>
-                <Divider />
-                <MenuItem onClick={handleLogout}>
-                  <ListItemIcon>
-                    <LogoutIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Logout</ListItemText>
-                </MenuItem>
-              </Menu>
+            <IconButton
+              size="large"
+              edge="end"
+              aria-label="account"
+              aria-haspopup="true"
+              onClick={handleProfileMenuOpen}
+              color="inherit"
+            >
+              <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+                {user?.name.charAt(0)}
+              </Avatar>
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+            >
+              <MenuItem onClick={() => {
+                handleMenuClose();
+                navigate('/profile');
+              }}>
+                <ListItemIcon>
+                  <PersonIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Profile</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => {
+                handleMenuClose();
+                navigate('/settings');
+              }}>
+                <ListItemIcon>
+                  <SettingsIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Settings</ListItemText>
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon>
+                  <LogoutIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Logout</ListItemText>
+              </MenuItem>
+            </Menu>
           </Box>
         </Toolbar>
       </AppBar>

@@ -8,9 +8,8 @@ import {
   deleteUser,
   getUserById,
   updateUser,
-  createUserByAdmin,
 } from '../controllers/userController.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
+import { protect, admin, checkPermission } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -25,14 +24,11 @@ router.route('/profile')
 
 // Admin routes
 router.route('/')
-  .get(protect, admin, getUsers);
-
-router.route('/admin/create')
-  .post(protect, admin, createUserByAdmin);
+  .get(protect, checkPermission('users.read'), getUsers);
 
 router.route('/:id')
-  .get(protect, admin, getUserById)
-  .put(protect, admin, updateUser)
-  .delete(protect, admin, deleteUser);
+  .get(protect, checkPermission('users.read'), getUserById)
+  .put(protect, checkPermission('users.update'), updateUser)
+  .delete(protect, checkPermission('users.delete'), deleteUser);
 
 export default router;
