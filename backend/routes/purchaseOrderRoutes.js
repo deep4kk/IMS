@@ -5,7 +5,8 @@ import {
   getPurchaseOrderById,
   updatePurchaseOrder,
   deletePurchaseOrder,
-  getNextPoNumber
+  getNextPoNumber,
+  getApprovedItemsForVendor //Import the new function
 } from '../controllers/purchaseOrderController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -17,6 +18,7 @@ router.route('/')
 
 router.route('/next-po-number')
   .get(protect, getNextPoNumber);
+router.route('/approved-items/:vendorId').get(protect, getApprovedItemsForVendor);
 
 router.route('/:id')
   .get(protect, getPurchaseOrderById)

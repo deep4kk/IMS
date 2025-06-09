@@ -54,7 +54,16 @@ export const createSalesOrder = asyncHandler(async (req, res) => {
 
   const totalAmount = subtotal - totalDiscount + totalTax;
 
+  // Generate SO number
+  const lastSO = await SalesOrder.findOne().sort({ createdAt: -1 });
+  let nextOrderNumber = 'SO-001';
+  if (lastSO && lastSO.orderNumber) {
+    const lastNumber = parseInt(lastSO.orderNumber.split('-')[1], 10);
+    nextOrderNumber = `SO-${(lastNumber + 1).toString().padStart(3, '0')}`;
+  }
+
   const orderData = {
+    orderNumber: nextOrderNumber,
     customer,
     orderDate,
     expectedDeliveryDate,
@@ -303,43 +312,78 @@ export const exportOrderToPdf = asyncHandler(async (req, res) => {
 
   // Addresses
   const customer = salesOrder.customer;
-  doc.fontSize(12).text('Bill To:', { underline: true });
-  doc.text(customer.name);
-  doc.text(customer.billingAddress.street);
-  doc.text(`${customer.billingAddress.city}, ${customer.billingAddress.state} ${customer.billingAddress.pincode}`);
-  doc.text(customer.billingAddress.country);
+  const currentY = doc.y;
+  
+  // Bill To Address - Left Side
+  doc.fontSize(12).font('Helvetica-Bold').text('Bill To:', 50, currentY, { underline: true });
+  doc.font('Helvetica').fontSize(10);
+  doc.text(customer.name, 50, doc.y + 5);
+  
+  // Wrap billing address properly
+  const billAddress = salesOrder.billingAddress || customer.billingAddress || {};
+  if (billAddress.street) {
+    doc.text(billAddress.street, 50, doc.y + 2, { width: 250, align: 'left' });
+  }
+  doc.text(`${billAddress.city || ''}, ${billAddress.state || ''} ${billAddress.pincode || ''}`, 50, doc.y + 2);
+  if (billAddress.country) {
+    doc.text(billAddress.country, 50, doc.y + 2);
+  }
 
-  const shipToX = 350;
-  doc.text('Ship To:', shipToX, doc.y - 60, { underline: true });
-  doc.text(customer.name, shipToX, doc.y);
-  doc.text(customer.shippingAddress.street, shipToX, doc.y);
-  doc.text(`${customer.shippingAddress.city}, ${customer.shippingAddress.state} ${customer.shippingAddress.pincode}`, shipToX, doc.y);
-  doc.text(customer.shippingAddress.country, shipToX, doc.y);
+  // Ship To Address - Right Side
+  doc.fontSize(12).font('Helvetica-Bold').text('Ship To:', 350, currentY, { underline: true });
+  doc.font('Helvetica').fontSize(10);
+  doc.text(customer.name, 350, currentY + 20);
+  
+  // Wrap shipping address properly
+  const shipAddress = salesOrder.shippingAddress || customer.shippingAddress || {};
+  if (shipAddress.street) {
+    doc.text(shipAddress.street, 350, doc.y + 2, { width: 200, align: 'left' });
+  }
+  doc.text(`${shipAddress.city || ''}, ${shipAddress.state || ''} ${shipAddress.pincode || ''}`, 350, doc.y + 2);
+  if (shipAddress.country) {
+    doc.text(shipAddress.country, 350, doc.y + 2);
+  }
+  
+  doc.y = Math.max(doc.y, currentY + 100); // Ensure consistent spacing
   doc.moveDown(2);
 
   // Items Table
   const tableTop = doc.y;
   const itemX = 50;
-  const qtyX = 250;
-  const priceX = 320;
+  const qtyX = 280;
+  const priceX = 350;
   const totalX = 450;
 
-  doc.fontSize(10).text('Item', itemX, tableTop)
-     .text('Quantity', qtyX, tableTop)
-     .text('Unit Price', priceX, tableTop)
-     .text('Total', totalX, tableTop, {align: 'right'});
+  // Table Header
+  doc.fontSize(11).font('Helvetica-Bold');
+  doc.rect(50, tableTop, 500, 20).fill('#f0f0f0');
+  doc.fillColor('black');
+  doc.text('Item', itemX + 5, tableTop + 5)
+     .text('Qty', qtyX + 5, tableTop + 5)
+     .text('Unit Price', priceX + 5, tableTop + 5)
+     .text('Total', totalX + 5, tableTop + 5);
 
-  let i = 0;
+  // Table Rows
+  doc.font('Helvetica').fontSize(10);
   const items = salesOrder.items;
-  for (i = 0; i < items.length; i++) {
+  for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    const y = tableTop + 25 + (i * 25);
-    doc.fontSize(10).text(item.sku.name, itemX, y)
-       .text(item.quantity.toString(), qtyX, y)
-       .text(`$${item.unitPrice.toFixed(2)}`, priceX, y)
-       .text(`$${item.totalAmount.toFixed(2)}`, totalX, y, {align: 'right'});
+    const y = tableTop + 25 + (i * 20);
+    
+    // Alternate row colors
+    if (i % 2 === 1) {
+      doc.rect(50, y - 2, 500, 20).fill('#f9f9f9');
+      doc.fillColor('black');
+    }
+    
+    doc.text(item.sku.name || 'N/A', itemX + 5, y, { width: 220 })
+       .text(item.quantity.toString(), qtyX + 5, y)
+       .text(`$${item.unitPrice.toFixed(2)}`, priceX + 5, y)
+       .text(`$${item.totalAmount.toFixed(2)}`, totalX + 5, y);
   }
-  doc.moveDown(2);
+  
+  const tableBottom = tableTop + 25 + (items.length * 20);
+  doc.y = tableBottom + 10;
 
   // Totals
   const totalsY = doc.y;

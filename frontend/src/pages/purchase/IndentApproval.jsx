@@ -47,6 +47,7 @@ function IndentApproval() {
   const [actionDialog, setActionDialog] = useState({ open: false, type: '', indent: null });
   const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editableItems, setEditableItems] = useState([]);
 
   useEffect(() => {
     fetchPendingIndents();
@@ -79,9 +80,14 @@ function IndentApproval() {
     setSubmitting(true);
     try {
       const endpoint = actionDialog.type === 'approve' ? 'approve' : 'reject';
-      await axios.put(`/api/purchase-indents/approval/${actionDialog.indent._id}/${endpoint}`, {
-        remarks
-      });
+      const payload = { remarks };
+      
+      // Include edited items if approving
+      if (actionDialog.type === 'approve' && editableItems.length > 0) {
+        payload.items = editableItems;
+      }
+      
+      await axios.put(`/api/purchase-indents/approval/${actionDialog.indent._id}/${endpoint}`, payload);
 
       // Refresh data
       await fetchPendingIndents();

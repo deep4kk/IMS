@@ -12,7 +12,7 @@ export const getPendingIndentsForApproval = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const pendingIndents = await PurchaseIndent.find({ 
-    status: 'pending_approval' 
+    status: 'Pending' 
   })
     .populate('createdBy', 'name email')
     .populate('items.sku', 'name sku')
@@ -20,7 +20,7 @@ export const getPendingIndentsForApproval = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit);
 
-  const total = await PurchaseIndent.countDocuments({ status: 'pending_approval' });
+  const total = await PurchaseIndent.countDocuments({ status: 'Pending' });
 
   res.json({
     indents: pendingIndents,
@@ -39,7 +39,7 @@ export const getApprovedIndents = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const approvedIndents = await PurchaseIndent.find({
-    status: { $in: ['approved', 'rejected'] }
+    status: { $in: ['Approved', 'Rejected'] }
   })
     .populate('createdBy', 'name email')
     .populate('approvedBy', 'name email')
@@ -49,7 +49,7 @@ export const getApprovedIndents = asyncHandler(async (req, res) => {
     .limit(limit);
 
   const total = await PurchaseIndent.countDocuments({ 
-    status: { $in: ['approved', 'rejected'] }
+    status: { $in: ['Approved', 'Rejected'] }
   });
 
   res.json({
@@ -73,13 +73,18 @@ export const approveIndent = asyncHandler(async (req, res) => {
     throw new Error('Purchase indent not found');
   }
 
-  if (indent.status !== 'pending_approval') {
+  if (indent.status !== 'Pending') {
     res.status(400);
-    throw new Error('Indent is not in pending approval status');
+    throw new Error('Indent is not in pending status');
   }
 
-  // Update indent status
-  indent.status = 'approved';
+  // Update indent status and allow editing of items
+  const { items } = req.body;
+  if (items && items.length > 0) {
+    indent.items = items;
+  }
+  
+  indent.status = 'Approved';
   indent.approvedBy = req.user._id;
   indent.approvedAt = new Date();
   if (remarks) indent.approvalRemarks = remarks;
@@ -115,13 +120,13 @@ export const rejectIndent = asyncHandler(async (req, res) => {
     throw new Error('Purchase indent not found');
   }
 
-  if (indent.status !== 'pending_approval') {
+  if (indent.status !== 'Pending') {
     res.status(400);
-    throw new Error('Indent is not in pending approval status');
+    throw new Error('Indent is not in pending status');
   }
 
   // Update indent status
-  indent.status = 'rejected';
+  indent.status = 'Rejected';
   indent.approvedBy = req.user._id;
   indent.approvedAt = new Date();
   if (remarks) indent.approvalRemarks = remarks;

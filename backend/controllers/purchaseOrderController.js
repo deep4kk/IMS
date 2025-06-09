@@ -24,7 +24,7 @@ export const createPurchaseOrder = asyncHandler(async (req, res) => {
     throw new Error('Purchase indent not found');
   }
 
-  if (purchaseIndent.status !== 'approved') {
+  if (purchaseIndent.status !== 'Approved') {
     res.status(400);
     throw new Error('Can only create PO from approved indents');
   }
@@ -214,4 +214,36 @@ export const getNextPoNumber = asyncHandler(async (req, res) => {
     nextPoNumber = `PO-${(lastNumber + 1).toString().padStart(4, '0')}`;
   }
   res.json({ nextPoNumber });
+});
+
+// @desc    Get approved items for PO by vendor
+// @route   GET /api/purchase-orders/approved-items/:vendorId
+// @access  Private
+export const getApprovedItemsForVendor = asyncHandler(async (req, res) => {
+  const { vendorId } = req.params;
+  
+  const approvedIndents = await PurchaseIndent.find({ 
+    status: 'Approved',
+    'items.vendor': vendorId
+  })
+    .populate('items.sku', 'name sku')
+    .populate('items.vendor', 'name');
+
+  let approvedItems = [];
+  
+  approvedIndents.forEach(indent => {
+    indent.items.forEach(item => {
+      if (item.vendor && item.vendor._id.toString() === vendorId) {
+        approvedItems.push({
+          _id: item._id,
+          sku: item.sku,
+          quantity: item.quantity,
+          indentId: indent.indentId,
+          indentObjectId: indent._id
+        });
+      }
+    });
+  });
+
+  res.json(approvedItems);
 });
