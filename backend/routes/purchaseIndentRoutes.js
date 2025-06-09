@@ -1,21 +1,37 @@
 import express from 'express';
-const router = express.Router();
 import {
   createPurchaseIndent,
   getPurchaseIndents,
-  getVendorsForSku,
-  getNextIndentId,
+  getPurchaseIndentById,
+  updatePurchaseIndent,
+  deletePurchaseIndent,
+  submitForApproval
 } from '../controllers/purchaseIndentController.js';
 import {
   getPendingIndentsForApproval,
-  getApprovedIndents,
+  approveIndent,
+  rejectIndent,
+  getApprovalHistory
 } from '../controllers/purchaseIndentApprovalController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, manager } from '../middleware/authMiddleware.js';
 
 router.route('/').post(protect, createPurchaseIndent).get(protect, getPurchaseIndents);
 router.route('/next-indent-id').get(protect, getNextIndentId);
 router.route('/sku/:skuId/vendors').get(protect, getVendorsForSku);
-router.route('/pending-for-approval').get(protect, getPendingIndentsForApproval);
-router.route('/approved-indents').get(protect, getApprovedIndents);
+router.route('/:id/submit')
+  .put(protect, submitForApproval);
+
+// Approval routes
+router.route('/approval/pending')
+  .get(protect, manager, getPendingIndentsForApproval);
+
+router.route('/approval/:id/approve')
+  .put(protect, manager, approveIndent);
+
+router.route('/approval/:id/reject')
+  .put(protect, manager, rejectIndent);
+
+router.route('/approval/:id/history')
+  .get(protect, getApprovalHistory);
 
 export default router;

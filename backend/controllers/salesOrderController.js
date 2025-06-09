@@ -54,7 +54,7 @@ export const createSalesOrder = asyncHandler(async (req, res) => {
 
   const totalAmount = subtotal - totalDiscount + totalTax;
 
-  const salesOrder = await SalesOrder.create({
+  const orderData = {
     customer,
     orderDate,
     expectedDeliveryDate,
@@ -69,7 +69,9 @@ export const createSalesOrder = asyncHandler(async (req, res) => {
     totalAmount,
     notes,
     createdBy: req.user._id
-  });
+  };
+
+  const salesOrder = await SalesOrder.create(orderData);
 
   const populatedOrder = await SalesOrder.findById(salesOrder._id)
     .populate('customer', 'name email phone')
@@ -198,7 +200,7 @@ export const updateSalesOrder = asyncHandler(async (req, res) => {
     if (status === 'confirmed' && salesOrder.status === 'draft') {
       salesOrder.approvedBy = req.user._id;
       salesOrder.approvedAt = new Date();
-      
+
       // Reserve stock for confirmed orders
       for (let item of salesOrder.items) {
         await SKU.findByIdAndUpdate(item.sku, {
@@ -306,7 +308,7 @@ export const exportOrderToPdf = asyncHandler(async (req, res) => {
   doc.text(customer.billingAddress.street);
   doc.text(`${customer.billingAddress.city}, ${customer.billingAddress.state} ${customer.billingAddress.pincode}`);
   doc.text(customer.billingAddress.country);
-  
+
   const shipToX = 350;
   doc.text('Ship To:', shipToX, doc.y - 60, { underline: true });
   doc.text(customer.name, shipToX, doc.y);
@@ -326,7 +328,7 @@ export const exportOrderToPdf = asyncHandler(async (req, res) => {
      .text('Quantity', qtyX, tableTop)
      .text('Unit Price', priceX, tableTop)
      .text('Total', totalX, tableTop, {align: 'right'});
-  
+
   let i = 0;
   const items = salesOrder.items;
   for (i = 0; i < items.length; i++) {

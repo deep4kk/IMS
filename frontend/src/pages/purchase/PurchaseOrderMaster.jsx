@@ -1,355 +1,506 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+
+import React, { useState, useEffect } from 'react';
 import {
-  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, CircularProgress, IconButton, Tooltip, Chip
+  Box,
+  Typography,
+  Paper,
+  Button,
+  Grid,
+  Card,
+  CardContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+  Chip,
+  IconButton,
+  Fab,
+  Autocomplete,
+  TablePagination,
+  FormControl,
+  InputLabel,
+  Select,
+  Divider,
+  Tabs,
+  Tab
 } from '@mui/material';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  FilterList as FilterIcon,
+  Search as SearchIcon,
+  PictureAsPdf as PdfIcon,
+  Business as BusinessIcon
+} from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { useAlert } from '../../context/AlertContext';
+import axios from 'axios';
 
-// Helper function to format date, can be moved to a utils file
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString();
-};
-
-// Professional PDF Export Function
-const exportSinglePOAsPDF = (poDetails) => {
-  if (!poDetails || !poDetails.vendor || !poDetails.items) {
-    console.error("Cannot export PDF: PO details, vendor, or items missing.", poDetails);
-    alert("Cannot export PDF: Essential details are missing for this PO.");
-    return;
-  }
-
-  const doc = new jsPDF();
-  const vendorDetails = poDetails.vendor;
-  const itemsForPdf = poDetails.items;
-
-  // Header with company branding
-  doc.setFillColor(41, 128, 185);
-  doc.rect(0, 0, 210, 35, 'F');
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  doc.text("PURCHASE ORDER", 14, 20);
-  
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text("Your Company Name", 14, 28);
-  
-  // PO Number in top right
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`PO #${poDetails.poNumber || 'N/A'}`, 140, 20);
-  doc.setFontSize(10);
-  doc.text(`Date: ${formatDate(poDetails.createdAt)}`, 140, 28);
-
-  // Reset text color
-  doc.setTextColor(0, 0, 0);
-
-  // Company details section
-  doc.setFontSize(10);
-  doc.text("Your Company Address", 14, 45);
-  doc.text("City, State - Pincode", 14, 50);
-  doc.text("Phone: +91-XXXXXXXXXX", 14, 55);
-  doc.text("Email: orders@yourcompany.com", 14, 60);
-
-  // Vendor details box
-  doc.setFillColor(245, 245, 245);
-  doc.rect(14, 70, 180, 45, 'F');
-  doc.setDrawColor(200, 200, 200);
-  doc.rect(14, 70, 180, 45, 'S');
-
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text("VENDOR DETAILS", 20, 80);
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Name: ${vendorDetails.name || 'N/A'}`, 20, 88);
-  
-  if (vendorDetails.address) {
-    doc.text(`Address: ${vendorDetails.address.street || ''}`, 20, 94);
-    doc.text(`${vendorDetails.address.city || ''}, ${vendorDetails.address.state || ''} - ${vendorDetails.address.pincode || ''}`, 20, 100);
-  } else {
-    doc.text("Address: Not available", 20, 94);
-  }
-  
-  doc.text(`Email: ${vendorDetails.email || 'Not provided'}`, 20, 106);
-  doc.text(`Phone: ${vendorDetails.phone || 'Not provided'}`, 110, 106);
-  doc.text(`GSTIN: ${vendorDetails.gstin || 'Not provided'}`, 20, 112);
-
-  // Order details
-  doc.setFontSize(10);
-  doc.text(`Delivery Due Date: ${formatDate(poDetails.deliveryDueDate)}`, 20, 125);
-  doc.text(`Status: ${poDetails.status || 'N/A'}`, 110, 125);
-  doc.text(`Payment Terms: ${poDetails.paymentDays || 'As agreed'} days`, 20, 132);
-  doc.text(`Freight Terms: ${poDetails.freight || 'As agreed'}`, 110, 132);
-
-  // Items table
-  const tableColumn = ["S.No", "Item Description", "SKU Code", "Quantity", "Unit", "Rate", "Amount"];
-  const tableRows = [];
-
-  let totalAmount = 0;
-  itemsForPdf.forEach((item, index) => {
-    const rate = item.unitPrice || 0;
-    const amount = item.quantity * rate;
-    totalAmount += amount;
-    
-    const itemData = [
-      index + 1,
-      item.sku?.name || "N/A",
-      item.sku?.skuCode || item.sku?.sku || "N/A",
-      item.quantity,
-      "Nos",
-      rate.toFixed(2),
-      amount.toFixed(2)
-    ];
-    tableRows.push(itemData);
-  });
-
-  doc.autoTable({
-    startY: 145,
-    head: [tableColumn],
-    body: tableRows,
-    theme: 'striped',
-    headStyles: { 
-      fillColor: [41, 128, 185],
-      textColor: 255,
-      fontSize: 10,
-      fontStyle: 'bold'
-    },
-    bodyStyles: { 
-      fontSize: 9,
-      cellPadding: 3
-    },
-    columnStyles: {
-      0: { cellWidth: 15, halign: 'center' },
-      1: { cellWidth: 60 },
-      2: { cellWidth: 30 },
-      3: { cellWidth: 20, halign: 'center' },
-      4: { cellWidth: 15, halign: 'center' },
-      5: { cellWidth: 25, halign: 'right' },
-      6: { cellWidth: 25, halign: 'right' }
-    }
-  });
-
-  let finalY = doc.lastAutoTable.finalY || 145;
-
-  // Total amount box
-  doc.setFillColor(245, 245, 245);
-  doc.rect(140, finalY + 10, 54, 20, 'F');
-  doc.setDrawColor(200, 200, 200);
-  doc.rect(140, finalY + 10, 54, 20, 'S');
-  
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text("Total Amount:", 145, finalY + 20);
-  doc.text(`₹ ${totalAmount.toFixed(2)}`, 145, finalY + 26);
-
-  // Terms and conditions
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text("Terms & Conditions:", 14, finalY + 45);
-  doc.setFont('helvetica', 'normal');
-  const terms = [
-    "1. Please confirm receipt of this purchase order.",
-    "2. Delivery should be made as per schedule mentioned above.",
-    "3. Payment will be made as per agreed terms.",
-    "4. Quality and quantity should be as per specifications.",
-    "5. All disputes subject to local jurisdiction."
-  ];
-  
-  terms.forEach((term, index) => {
-    doc.text(term, 14, finalY + 55 + (index * 6));
-  });
-
-  // Footer
-  doc.setFontSize(8);
-  doc.setTextColor(100, 100, 100);
-  doc.text("This is a computer generated document and does not require signature.", 14, 280);
-  doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 285);
-
-  // Save the PDF
-  doc.save(`PO_${poDetails.poNumber}_${vendorDetails.name.replace(/\s+/g, '_')}.pdf`);
-};
-
+function TabPanel({ children, value, index, ...other }) {
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
 
 function PurchaseOrderMaster() {
-  const [purchaseOrders, setPurchaseOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [pendingIndents, setPendingIndents] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [tabValue, setTabValue] = useState(0);
+
+  // Dialog states
+  const [viewDialog, setViewDialog] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [createPoDialog, setCreatePoDialog] = useState(false);
+  const [selectedIndents, setSelectedIndents] = useState([]);
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    status: '',
+    supplier: '',
+    startDate: null,
+    endDate: null
+  });
+
+  const { showAlert } = useAlert();
 
   useEffect(() => {
-    const fetchPurchaseOrders = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // The GET /api/purchase-orders route populates vendor and items.sku
-        const response = await axios.get('/api/purchase-orders');
-        setPurchaseOrders(response.data || []);
-      } catch (err) {
-        console.error("Error fetching purchase orders:", err);
-        setError(err.response?.data?.error || err.message || 'Failed to fetch purchase orders.');
-      } finally {
-        setLoading(false);
-      }
+    fetchOrders();
+    fetchSuppliers();
+    if (tabValue === 1) {
+      fetchPendingIndents();
+    }
+  }, [page, rowsPerPage, filters, tabValue]);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const params = {
+        page: page + 1,
+        limit: rowsPerPage,
+        ...filters
+      };
+
+      const response = await axios.get('/api/purchase-orders', { params });
+      setOrders(response.data.purchaseOrders || response.data || []);
+      setTotalOrders(response.data.totalOrders || 0);
+    } catch (error) {
+      showAlert('error', 'Failed to fetch purchase orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPendingIndents = async () => {
+    try {
+      const response = await axios.get('/api/purchase-indents', {
+        params: { status: 'approved' }
+      });
+      setPendingIndents(response.data.indents || []);
+    } catch (error) {
+      showAlert('error', 'Failed to fetch pending indents');
+    }
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      const response = await axios.get('/api/suppliers');
+      setSuppliers(response.data || []);
+    } catch (error) {
+      showAlert('error', 'Failed to fetch suppliers');
+    }
+  };
+
+  const handleCreatePO = async () => {
+    if (selectedIndents.length === 0) {
+      showAlert('error', 'Please select at least one indent');
+      return;
+    }
+
+    try {
+      const response = await axios.post('/api/purchase-orders/from-indents', {
+        indentIds: selectedIndents
+      });
+      showAlert('success', 'Purchase Order created successfully');
+      setCreatePoDialog(false);
+      setSelectedIndents([]);
+      fetchOrders();
+      fetchPendingIndents();
+    } catch (error) {
+      showAlert('error', 'Failed to create purchase order');
+    }
+  };
+
+  const handleExportPdf = async (orderId) => {
+    try {
+      const response = await axios.get(`/api/purchase-orders/export/pdf/${orderId}`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `PurchaseOrder_${orderId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showAlert('success', 'PDF exported successfully!');
+    } catch (error) {
+      showAlert('error', 'Failed to export PDF.');
+    }
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      draft: 'default',
+      confirmed: 'primary',
+      partial_received: 'warning',
+      completed: 'success',
+      cancelled: 'error'
     };
+    return colors[status] || 'default';
+  };
 
-    fetchPurchaseOrders();
-  }, []);
-
-  if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}><CircularProgress /></Box>;
-  }
-
-  if (error) {
-    return <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>Error: {error}</Typography>;
-  }
+  const groupIndentsBySupplier = () => {
+    const grouped = {};
+    pendingIndents.forEach(indent => {
+      indent.items.forEach(item => {
+        if (item.preferredSupplier) {
+          const supplierId = item.preferredSupplier._id;
+          if (!grouped[supplierId]) {
+            grouped[supplierId] = {
+              supplier: item.preferredSupplier,
+              indents: []
+            };
+          }
+          const existingIndent = grouped[supplierId].indents.find(i => i._id === indent._id);
+          if (!existingIndent) {
+            grouped[supplierId].indents.push(indent);
+          }
+        }
+      });
+    });
+    return grouped;
+  };
 
   return (
-    <Box sx={{ p: 3, backgroundColor: '#f8fafc', minHeight: '100vh' }}>
-      {/* Enhanced Header */}
-      <Paper elevation={0} sx={{ 
-        mb: 3, 
-        background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', 
-        color: 'white',
-        borderRadius: '16px',
-        overflow: 'hidden'
-      }}>
-        <Box sx={{ p: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-            Purchase Order Master
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Box sx={{ p: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+        <Paper elevation={3} sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+            Purchase Order Management
           </Typography>
-          <Typography variant="body1" sx={{ opacity: 0.9 }}>
-            Manage and track all purchase orders with vendors
-          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreatePoDialog(true)}
+          >
+            Create PO
+          </Button>
+        </Paper>
+
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
+            <Tab label="Master (All POs)" />
+            <Tab label="Pending Indents" />
+          </Tabs>
         </Box>
-      </Paper>
 
-      {/* Statistics Cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3, mb: 3 }}>
-        <Paper elevation={2} sx={{ p: 3, borderRadius: '12px', background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', color: 'white' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>Total POs</Typography>
-          <Typography variant="h3" sx={{ fontWeight: 700 }}>{purchaseOrders.length}</Typography>
-        </Paper>
-        <Paper elevation={2} sx={{ p: 3, borderRadius: '12px', background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', color: 'white' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>Pending</Typography>
-          <Typography variant="h3" sx={{ fontWeight: 700 }}>
-            {purchaseOrders.filter(po => po.status === 'Pending').length}
-          </Typography>
-        </Paper>
-        <Paper elevation={2} sx={{ p: 3, borderRadius: '12px', background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)', color: 'white' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>Completed</Typography>
-          <Typography variant="h3" sx={{ fontWeight: 700 }}>
-            {purchaseOrders.filter(po => po.stockInStatus === 'Stocked In').length}
-          </Typography>
-        </Paper>
-      </Box>
+        <TabPanel value={tabValue} index={0}>
+          {/* Filters */}
+          <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={3}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={filters.status}
+                    label="Status"
+                    onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                  >
+                    <MenuItem value="">All Statuses</MenuItem>
+                    <MenuItem value="draft">Draft</MenuItem>
+                    <MenuItem value="confirmed">Confirmed</MenuItem>
+                    <MenuItem value="partial_received">Partial Received</MenuItem>
+                    <MenuItem value="completed">Completed</MenuItem>
+                    <MenuItem value="cancelled">Cancelled</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <Autocomplete
+                  size="small"
+                  options={suppliers}
+                  getOptionLabel={(option) => option.name || ''}
+                  value={suppliers.find(s => s._id === filters.supplier) || null}
+                  onChange={(_, value) => setFilters(prev => ({ ...prev, supplier: value?._id || '' }))}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Supplier" />
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} md={2}>
+                <DatePicker
+                  label="Start Date"
+                  value={filters.startDate}
+                  onChange={(date) => setFilters(prev => ({ ...prev, startDate: date }))}
+                  renderInput={(params) => <TextField {...params} size="small" fullWidth />}
+                />
+              </Grid>
+              <Grid item xs={12} md={2}>
+                <DatePicker
+                  label="End Date"
+                  value={filters.endDate}
+                  onChange={(date) => setFilters(prev => ({ ...prev, endDate: date }))}
+                  renderInput={(params) => <TextField {...params} size="small" fullWidth />}
+                />
+              </Grid>
+              <Grid item xs={12} md={2}>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={() => setFilters({ status: '', supplier: '', startDate: null, endDate: null })}
+                >
+                  Clear Filters
+                </Button>
+              </Grid>
+            </Grid>
+          </Paper>
 
-      {/* Main Table */}
-      {purchaseOrders.length === 0 ? (
-        <Paper elevation={2} sx={{ p: 6, textAlign: 'center', borderRadius: '12px' }}>
-          <Typography variant="h6" color="textSecondary" sx={{ mb: 1 }}>
-            No Purchase Orders Found
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            Create your first purchase order to get started
-          </Typography>
-        </Paper>
-      ) : (
-        <Paper elevation={2} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
-          <TableContainer>
+          {/* Orders Table */}
+          <TableContainer component={Paper} elevation={3}>
             <Table>
-              <TableHead sx={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)' }}>
+              <TableHead sx={{ backgroundColor: 'primary.main' }}>
                 <TableRow>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '0.875rem' }}>PO Number</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '0.875rem' }}>Vendor</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '0.875rem' }}>PO Date</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '0.875rem' }}>Due Date</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '0.875rem' }}>Status</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '0.875rem' }}>Stock-In Status</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '0.875rem', textAlign: 'center' }}>Items</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '0.875rem', textAlign: 'center' }}>Actions</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>PO Number</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Supplier</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Order Date</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Expected Date</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Total Amount</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {purchaseOrders.map((po, index) => (
-                  <TableRow 
-                    key={po._id} 
-                    hover 
-                    sx={{ 
-                      '&:nth-of-type(odd)': { backgroundColor: '#f8fafc' },
-                      '&:hover': { backgroundColor: '#e2e8f0' },
-                      transition: 'background-color 0.2s ease'
-                    }}
-                  >
-                    <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>{po.poNumber}</TableCell>
+                {orders.map((order) => (
+                  <TableRow key={order._id} hover sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f9f9f9' } }}>
+                    <TableCell>{order.orderNumber}</TableCell>
+                    <TableCell>{order.supplier?.name}</TableCell>
                     <TableCell>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {po.vendor?.name || 'N/A'}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          {po.vendor?.email || ''}
-                        </Typography>
-                      </Box>
+                      {new Date(order.orderDate).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>{formatDate(po.createdAt)}</TableCell>
-                    <TableCell>{formatDate(po.deliveryDueDate)}</TableCell>
                     <TableCell>
-                      <Chip 
-                        label={po.status} 
+                      {new Date(order.expectedDeliveryDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>₹{order.totalAmount?.toFixed(2) || '0.00'}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={order.status}
+                        color={getStatusColor(order.status)}
                         size="small"
-                        color={po.status === 'Approved' ? 'success' : po.status === 'Pending' ? 'warning' : 'default'}
-                        sx={{ fontWeight: 500 }}
                       />
                     </TableCell>
                     <TableCell>
-                      <Chip 
-                        label={po.stockInStatus} 
+                      <IconButton
                         size="small"
-                        color={po.stockInStatus === 'Stocked In' ? 'success' : 'info'}
-                        variant="outlined"
-                        sx={{ fontWeight: 500 }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip 
-                        label={po.items?.length || 0} 
-                        size="small" 
-                        variant="outlined"
-                        color="primary"
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="Export Professional PDF" arrow>
-                        <IconButton 
-                          onClick={() => exportSinglePOAsPDF(po)} 
-                          size="small" 
-                          sx={{ 
-                            color: '#dc2626',
-                            '&:hover': { 
-                              backgroundColor: '#fee2e2',
-                              transform: 'scale(1.1)'
-                            },
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          <PictureAsPdfIcon />
-                        </IconButton>
-                      </Tooltip>
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setViewDialog(true);
+                        }}
+                      >
+                        <ViewIcon />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleExportPdf(order._id)}
+                        color="secondary"
+                      >
+                        <PdfIcon />
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            <TablePagination
+              rowsPerPageOptions={[10, 25, 50]}
+              component="div"
+              count={totalOrders}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+            />
           </TableContainer>
-        </Paper>
-      )}
-    </Box>
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={1}>
+          {/* Pending Indents by Supplier */}
+          <Grid container spacing={3}>
+            {Object.entries(groupIndentsBySupplier()).map(([supplierId, data]) => (
+              <Grid item xs={12} md={6} lg={4} key={supplierId}>
+                <Card elevation={3}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <BusinessIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="h6" component="h2">
+                        {data.supplier.name}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Pending Indents: {data.indents.length}
+                    </Typography>
+                    <Divider sx={{ my: 1 }} />
+                    {data.indents.slice(0, 3).map((indent) => (
+                      <Typography key={indent._id} variant="body2" sx={{ mb: 0.5 }}>
+                        • {indent.indentNumber} - {indent.items.length} items
+                      </Typography>
+                    ))}
+                    {data.indents.length > 3 && (
+                      <Typography variant="body2" color="text.secondary">
+                        ... and {data.indents.length - 3} more
+                      </Typography>
+                    )}
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      fullWidth
+                      sx={{ mt: 2 }}
+                      onClick={() => {
+                        setSelectedIndents(data.indents.map(i => i._id));
+                        setCreatePoDialog(true);
+                      }}
+                    >
+                      Create PO
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </TabPanel>
+
+        {/* View Order Dialog */}
+        <Dialog
+          open={viewDialog}
+          onClose={() => setViewDialog(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <DialogTitle>Purchase Order Details - {selectedOrder?.orderNumber}</DialogTitle>
+          <DialogContent>
+            {selectedOrder && (
+              <Box>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Supplier</Typography>
+                    <Typography>{selectedOrder.supplier?.name}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Order Date</Typography>
+                    <Typography>{new Date(selectedOrder.orderDate).toLocaleDateString()}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Expected Delivery Date</Typography>
+                    <Typography>{new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString()}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Status</Typography>
+                    <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" />
+                  </Grid>
+                </Grid>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="h6" sx={{ mb: 1 }}>Items</Typography>
+                <TableContainer component={Paper}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>SKU</TableCell>
+                        <TableCell>Quantity</TableCell>
+                        <TableCell>Unit Price</TableCell>
+                        <TableCell>Total</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedOrder.items?.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.sku?.name}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell>₹{item.unitPrice?.toFixed(2) || '0.00'}</TableCell>
+                          <TableCell>₹{item.totalAmount?.toFixed(2) || '0.00'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                <Box sx={{ mt: 2, textAlign: 'right' }}>
+                  <Typography variant="h6">
+                    Grand Total: ₹{selectedOrder.totalAmount?.toFixed(2) || '0.00'}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setViewDialog(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Create PO Dialog */}
+        <Dialog
+          open={createPoDialog}
+          onClose={() => setCreatePoDialog(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>Create Purchase Order</DialogTitle>
+          <DialogContent>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              Selected Indents: {selectedIndents.length}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              This will create a purchase order from the selected indents.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCreatePoDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreatePO} variant="contained">
+              Create PO
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    </LocalizationProvider>
   );
 }
 
