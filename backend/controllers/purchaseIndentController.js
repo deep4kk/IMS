@@ -83,9 +83,113 @@ const getVendorsForSku = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Get single purchase indent
+// @route   GET /api/purchase-indents/:id
+// @access  Private
+const getPurchaseIndentById = asyncHandler(async (req, res) => {
+  const indent = await PurchaseIndent.findById(req.params.id)
+    .populate('createdBy', 'name email')
+    .populate('items.sku', 'name sku');
+
+  if (!indent) {
+    res.status(404);
+    throw new Error('Purchase indent not found');
+  }
+
+  res.json(indent);
+});
+
+// @desc    Update purchase indent
+// @route   PUT /api/purchase-indents/:id
+// @access  Private
+const updatePurchaseIndent = asyncHandler(async (req, res) => {
+  const indent = await PurchaseIndent.findById(req.params.id);
+
+  if (!indent) {
+    res.status(404);
+    throw new Error('Purchase indent not found');
+  }
+
+  if (indent.status !== 'Pending') {
+    res.status(400);
+    throw new Error('Cannot update approved or deleted indent');
+  }
+
+  const { items } = req.body;
+
+  if (items) {
+    indent.items = items;
+  }
+
+  const updatedIndent = await indent.save();
+  const populatedIndent = await PurchaseIndent.findById(updatedIndent._id)
+    .populate('createdBy', 'name email')
+    .populate('items.sku', 'name sku');
+
+  res.json(populatedIndent);
+});
+
+// @desc    Delete purchase indent
+// @route   DELETE /api/purchase-indents/:id
+// @access  Private
+const deletePurchaseIndent = asyncHandler(async (req, res) => {
+  const indent = await PurchaseIndent.findById(req.params.id);
+
+  if (!indent) {
+    res.status(404);
+    throw new Error('Purchase indent not found');
+  }
+
+  if (indent.status !== 'Pending') {
+    res.status(400);
+    throw new Error('Cannot delete approved or processed indent');
+  }
+
+  await indent.deleteOne();
+  res.json({ message: 'Purchase indent deleted successfully' });
+});
+
+// @desc    Submit indent for approval
+// @route   PUT /api/purchase-indents/:id/submit
+// @access  Private
+const submitForApproval = asyncHandler(async (req, res) => {
+  const indent = await PurchaseIndent.findById(req.params.id);
+
+  if (!indent) {
+    res.status(404);
+    throw new Error('Purchase indent not found');
+  }
+
+  if (indent.status !== 'Pending') {
+    res.status(400);
+    throw new Error('Indent is not in pending status');
+  }
+
+  indent.status = 'pending_approval';
+  await indent.save();
+
+  // Create log entry
+  await PurchaseIndentLog.create({
+    indent: indent._id,
+    user: req.user._id,
+    action: 'Submitted for Approval',
+    details: `Indent ${indent.indentId} submitted for approval.`,
+  });
+
+  const populatedIndent = await PurchaseIndent.findById(indent._id)
+    .populate('createdBy', 'name email')
+    .populate('items.sku', 'name sku');
+
+  res.json(populatedIndent);
+});
+
 export {
   createPurchaseIndent,
   getPurchaseIndents,
+  getPurchaseIndentById,
+  updatePurchaseIndent,
+  deletePurchaseIndent,
+  submitForApproval,
   getVendorsForSku,
   getNextIndentId,
 };

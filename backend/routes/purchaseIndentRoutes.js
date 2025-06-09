@@ -5,7 +5,9 @@ import {
   getPurchaseIndentById,
   updatePurchaseIndent,
   deletePurchaseIndent,
-  submitForApproval
+  submitForApproval,
+  getVendorsForSku,
+  getNextIndentId
 } from '../controllers/purchaseIndentController.js';
 import {
   getPendingIndentsForApproval,
@@ -16,9 +18,15 @@ import {
 } from '../controllers/purchaseIndentApprovalController.js';
 import { protect, manager } from '../middleware/authMiddleware.js';
 
+const router = express.Router();
+
 router.route('/').post(protect, createPurchaseIndent).get(protect, getPurchaseIndents);
 router.route('/next-indent-id').get(protect, getNextIndentId);
 router.route('/sku/:skuId/vendors').get(protect, getVendorsForSku);
+router.route('/:id')
+  .get(protect, getPurchaseIndentById)
+  .put(protect, updatePurchaseIndent)
+  .delete(protect, deletePurchaseIndent);
 router.route('/:id/submit')
   .put(protect, submitForApproval);
 
