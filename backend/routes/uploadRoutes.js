@@ -1,11 +1,11 @@
 import express from 'express';
-import upload from '../middleware/uploadMiddleware.js';
+import { singleUpload } from '../middleware/fileUploadMiddleware.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Handle file upload
-router.post('/', protect, upload.single('image'), (req, res) => {
+router.post('/', protect, singleUpload, (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
