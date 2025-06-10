@@ -39,6 +39,12 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 
 // Get user permissions
 userSchema.methods.getPermissions = async function () {
+  // Admin users get all permissions automatically
+  if (this.role === 'admin') {
+    const Permission = mongoose.model('Permission');
+    return await Permission.find({});
+  }
+
   const UserPermission = mongoose.model('UserPermission');
   const Permission = mongoose.model('Permission');
   
@@ -47,11 +53,16 @@ userSchema.methods.getPermissions = async function () {
     granted: true 
   }).populate('permissionId');
   
-  return userPermissions.map(up => up.permissionId);
+  return userPermissions.map(up => up.permissionId).filter(p => p !== null);
 };
 
 // Check if user has specific permission
 userSchema.methods.hasPermission = async function (permissionName) {
+  // Admin users have all permissions
+  if (this.role === 'admin') {
+    return true;
+  }
+
   const UserPermission = mongoose.model('UserPermission');
   const Permission = mongoose.model('Permission');
   

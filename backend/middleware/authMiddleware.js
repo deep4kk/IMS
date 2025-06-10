@@ -52,7 +52,7 @@ export const protect = asyncHandler(async (req, res, next) => {
 
 // Authorize manager role
 export const manager = (req, res, next) => {
-  if (req.user && req.user.role === 'manager') {
+  if (req.user && (req.user.role === 'manager' || req.user.role === 'admin')) {
     next();
   } else {
     res.status(403);
@@ -78,7 +78,7 @@ export const checkPermission = (permissionName) => {
       throw new Error('Not authenticated');
     }
 
-    // Admin users have all permissions
+    // Admin users have all permissions - ADMIN OVERRIDE
     if (req.user.role === 'admin') {
       return next();
     }
@@ -103,7 +103,7 @@ export const checkPermissions = (permissionNames) => {
       throw new Error('Not authenticated');
     }
 
-    // Admin users have all permissions
+    // Admin users have all permissions - ADMIN OVERRIDE
     if (req.user.role === 'admin') {
       return next();
     }
@@ -129,7 +129,7 @@ export const checkAnyPermission = (permissionNames) => {
       throw new Error('Not authenticated');
     }
 
-    // Admin users have all permissions
+    // Admin users have all permissions - ADMIN OVERRIDE
     if (req.user.role === 'admin') {
       return next();
     }

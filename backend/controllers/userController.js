@@ -1,5 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import User from '../models/userModel.js';
+import Permission from '../models/permissionModel.js';
+import UserPermission from '../models/userPermissionModel.js';
 import generateToken from '../utils/generateToken.js';
 
 // @desc    Auth user & get token
@@ -59,7 +61,7 @@ export const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
-    // Get user permissions (will be empty for new user)
+    // Get user permissions (will be empty for new user unless admin)
     const permissions = await user.getPermissions();
     
     res.status(201).json({
@@ -169,6 +171,8 @@ export const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
 
   if (user) {
+    // Also delete user permissions
+    await UserPermission.deleteMany({ userId: user._id });
     await user.deleteOne();
     res.json({ message: 'User removed' });
   } else {
@@ -228,4 +232,85 @@ export const updateUser = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('User not found');
   }
+});
+
+// @desc    Grant permission to user
+// @route   POST /api/users/:id/permissions
+// @access  Private/Admin
+export const grantPermission = asyncHandler(async (req, res) => {
+  const { permissionId } = req.body;
+  const userId = req.params.id;
+
+  // Check if user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // Check if permission exists
+  const permission = await Permission.findById(permissionId);
+  if (!permission) {
+    res.status(404);
+    throw new Error('Permission not found');
+  }
+
+  // Check if permission already granted
+  const existingPermission = await UserPermission.findOne({
+    userId,
+    permissionId,
+  });
+
+  if (existingPermission) {
+    existingPermission.granted = true;
+    existingPermission.grantedBy = req.user._id;
+    existingPermission.grantedAt = new Date();
+    await existingPermission.save();
+  } else {
+    await UserPermission.create({
+      userId,
+      permissionId,
+      granted: true,
+      grantedBy: req.user._id,
+    });
+  }
+
+  res.json({ message: 'Permission granted successfully' });
+});
+
+// @desc    Revoke permission from user
+// @route   DELETE /api/users/:id/permissions/:permissionId
+// @access  Private/Admin
+export const revokePermission = asyncHandler(async (req, res) => {
+  const { id: userId, permissionId } = req.params;
+
+  const userPermission = await UserPermission.findOne({
+    userId,
+    permissionId,
+  });
+
+  if (userPermission) {
+    userPermission.granted = false;
+    await userPermission.save();
+    res.json({ message: 'Permission revoked successfully' });
+  } else {
+    res.status(404);
+    throw new Error('Permission not found for this user');
+  }
+});
+
+// @desc    Get user permissions
+// @route   GET /api/users/:id/permissions
+// @access  Private/Admin
+export const getUserPermissions = asyncHandler(async (req, res) => {
+  const userId = req.params.id;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  const permissions = await user.getPermissions();
+  res.json(permissions);
 });

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { 
   Box, 
   Grid, 
@@ -37,26 +38,34 @@ function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [error, setError] = useState(null);
 
+  const { user } = useAuth();
+  
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        if (!user?.token) {
+          setError('Please log in to view the dashboard');
+          return;
+        }
+        
         setLoading(true);
-        const response = await axios.get('/api/dashboard');
+        const response = await axios.get('/api/dashboard', {
+          headers: {
+            Authorization: `Bearer ${user.token}`
+          }
+        });
         setDashboardData(response.data);
         setError(null);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        setError('Failed to load dashboard data. Please try again later.');
+        setError(error.response?.data?.message || 'Failed to load dashboard data. Please try again later.');
       } finally {
-        // Simulate loading for demonstration purposes
-        setTimeout(() => {
-          setLoading(false);
-        }, 1000);
+        setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, []);
+  }, [user]);
 
   // Sample data (in a real app, this would come from the API)
   const sampleDashboardData = {
@@ -139,10 +148,10 @@ function Dashboard() {
             <motion.div variants={itemVariants}>
               <DashboardCard 
                 title="Total SKUs"
-                value={loading ? <Skeleton width={80} /> : data.totalSKUs}
+                value={loading ? <Skeleton width={80} /> : typeof data.totalSKUs === 'number' ? data.totalSKUs.toString() : data.totalSKUs}
                 icon={<InventoryIcon />}
-                color={theme.palette.primary.main}
-                onClick={() => navigate('/skus')}
+                color="primary"
+                onClick={() => navigate('/inventory')}
               />
             </motion.div>
           </Grid>
@@ -150,10 +159,10 @@ function Dashboard() {
             <motion.div variants={itemVariants}>
               <DashboardCard 
                 title="Active Inventory Value"
-                value={loading ? <Skeleton width={100} /> : `₹${data.activeInventoryValue.toLocaleString()}`}
+                value={loading ? <Skeleton width={120} /> : typeof data.activeInventoryValue === 'number' ? `$${data.activeInventoryValue.toLocaleString()}` : data.activeInventoryValue}
                 icon={<TrendingUpIcon />}
-                color={theme.palette.secondary.main}
-                onClick={() => navigate('/skus')}
+                color="success"
+                onClick={() => navigate('/inventory')}
               />
             </motion.div>
           </Grid>
@@ -161,11 +170,11 @@ function Dashboard() {
             <motion.div variants={itemVariants}>
               <DashboardCard 
                 title="Low Stock Items"
-                value={loading ? <Skeleton width={50} /> : data.lowStockItems}
+                value={loading ? <Skeleton width={80} /> : Array.isArray(data.lowStockItems) ? data.lowStockItems.length.toString() : data.lowStockItems}
                 icon={<WarningIcon />}
-                color={theme.palette.warning.main}
-                onClick={() => navigate('/stock-adjustments')}
-                isWarning={true}
+                color="warning"
+                onClick={() => navigate('/inventory/low-stock')}
+                isWarning
               />
             </motion.div>
           </Grid>
@@ -173,10 +182,10 @@ function Dashboard() {
             <motion.div variants={itemVariants}>
               <DashboardCard 
                 title="Pending Orders"
-                value={loading ? <Skeleton width={50} /> : data.pendingOrders}
+                value={loading ? <Skeleton width={80} /> : typeof data.pendingOrders === 'number' ? data.pendingOrders.toString() : data.pendingOrders}
                 icon={<RefreshIcon />}
-                color={theme.palette.info.main} // <-- fixed here
-                onClick={() => navigate('/transactions')}
+                color="info"
+                onClick={() => navigate('/orders')}
               />
             </motion.div>
           </Grid>
