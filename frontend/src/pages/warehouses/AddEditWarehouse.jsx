@@ -118,12 +118,12 @@ function AddEditWarehouse() {
         }}
       >
         <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
-          {isEdit ? 'Edit Warehouse' : 'Add New Warehouse'}
+          {isEdit ? 'Edit Fulfillment Center' : 'Add New Fulfillment Center'}
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
           {isEdit 
-            ? 'Update the details of an existing warehouse.' 
-            : 'Create a new warehouse location in your inventory system.'}
+            ? 'Update the details of an existing fulfillment center.' 
+            : 'Create a new fulfillment center for your ecommerce operations.'}
         </Typography>
         <Divider sx={{ mb: 3 }} />
 
@@ -147,7 +147,7 @@ function AddEditWarehouse() {
                 fullWidth
                 id="name"
                 name="name"
-                label="Warehouse Name"
+                label="Fulfillment Center Name"
                 value={formik.values.name}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -161,7 +161,7 @@ function AddEditWarehouse() {
                 fullWidth
                 id="code"
                 name="code"
-                label="Warehouse Code"
+                label="Center Code"
                 value={formik.values.code}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -176,7 +176,7 @@ function AddEditWarehouse() {
                 fullWidth
                 id="manager"
                 name="manager"
-                label="Warehouse Manager"
+                label="Operations Manager"
                 value={formik.values.manager}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -374,7 +374,7 @@ function AddEditWarehouse() {
                   disabled={loading}
                   startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
                 >
-                  {loading ? 'Saving...' : `${isEdit ? 'Update' : 'Create'} Warehouse`}
+                  {loading ? 'Saving...' : `${isEdit ? 'Update' : 'Create'} Fulfillment Center`}
                 </Button>
               </Box>
             </Grid>

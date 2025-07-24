@@ -138,14 +138,14 @@ function Warehouses() {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1">
-          Warehouses
+          Fulfillment Centers
         </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => navigate('/warehouses/add')}
         >
-          Add Warehouse
+          Add Fulfillment Center
         </Button>
       </Box>
 
@@ -154,7 +154,7 @@ function Warehouses() {
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
-              placeholder="Search warehouses..."
+              placeholder="Search fulfillment centers..."
               variant="outlined"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -233,7 +233,7 @@ function Warehouses() {
 
                       <Box sx={{ mb: 2 }}>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
-                          Capacity Utilization
+                          Storage Utilization
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <LinearProgress
@@ -344,7 +344,7 @@ function Warehouses() {
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete warehouse "{selectedWarehouse?.name}"? This action cannot be undone.
+            Are you sure you want to delete fulfillment center "{selectedWarehouse?.name}"? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

@@ -89,36 +89,36 @@ const navigation = [
     href: '/',
   },
   {
-    name: 'Inventory',
+    name: 'Product Catalog',
     icon: InventoryIcon,
     children: [
-      { name: 'SKU Management', href: '/skus', icon: StorageIcon },
+      { name: 'Product Management', href: '/skus', icon: StorageIcon },
       { name: 'Stock Adjustments', href: '/inventory/adjustments', icon: AdjustIcon },
-      { name: 'Transactions', href: '/transactions', icon: CompareArrowsIcon },
-      { name: 'SKU to Vendor Mapping', href: '/vendors/sku-mapping', icon: LinkIcon },
+      { name: 'Inventory Transactions', href: '/transactions', icon: CompareArrowsIcon },
+      { name: 'Product-Supplier Mapping', href: '/vendors/sku-mapping', icon: LinkIcon },
     ],
   },
   {
-    name: 'Purchase',
+    name: 'Procurement',
     icon: ShoppingCartIcon,
     children: [
-      { name: 'Purchase Dashboard', href: '/purchase/dashboard', icon: TrendingUpIcon },
+      { name: 'Procurement Dashboard', href: '/purchase/dashboard', icon: TrendingUpIcon },
       { name: 'Purchase Order', href: '/purchase/orders', icon: AssignmentIcon },
-      { name: 'Purchase Indent', href: '/purchase/indent', icon: NoteAddIcon },
-      { name: 'Indent Approval', href: '/purchase/indent-approval', icon: AdminPanelSettingsIcon },
+      { name: 'Purchase Requisition', href: '/purchase/indent', icon: NoteAddIcon },
+      { name: 'Requisition Approval', href: '/purchase/indent-approval', icon: AdminPanelSettingsIcon },
       { name: 'Credit/Debit Note', href: '/purchase/credit-debit-note', icon: DescriptionIcon },
     ],
   },
   {
-    name: 'Sales',
+    name: 'Order Management',
     icon: PeopleIcon,
     children: [
-      { name: 'Sales Dashboard', href: '/sales/dashboard', icon: TrendingUpIcon },
-      { name: 'Sales Order', href: '/sales/orders', icon: AssignmentIcon },
-      { name: 'Sales Return', href: '/sales/returns', icon: CompareArrowsIcon },
-      { name: 'Invoice', href: '/sales/invoice', icon: ReceiptIcon },
-      { name: 'Dispatch', href: '/sales/dispatch', icon: LocalShippingIcon },
-      { name: 'Sales Debit Note', href: '/sales/debit-note', icon: DescriptionIcon },
+      { name: 'Order Dashboard', href: '/sales/dashboard', icon: TrendingUpIcon },
+      { name: 'Customer Orders', href: '/sales/orders', icon: AssignmentIcon },
+      { name: 'Returns & Refunds', href: '/sales/returns', icon: CompareArrowsIcon },
+      { name: 'Invoicing', href: '/sales/invoice', icon: ReceiptIcon },
+      { name: 'Fulfillment & Shipping', href: '/sales/dispatch', icon: LocalShippingIcon },
+      { name: 'Credit Notes', href: '/sales/debit-note', icon: DescriptionIcon },
     ],
   },
   {
@@ -127,7 +127,7 @@ const navigation = [
     href: '/customers',
   },
   {
-    name: 'Reports',
+    name: 'Analytics & Reports',
     icon: AssessmentIcon,
     href: '/reports',
   },
@@ -137,7 +137,7 @@ const navigation = [
     href: '/suppliers',
   },
   {
-    name: 'Warehouses',
+    name: 'Fulfillment Centers',
     icon: WarehouseIcon,
     href: '/warehouses',
   },
@@ -210,7 +210,7 @@ function Layout() {
           overflow: 'hidden',
           textOverflow: 'ellipsis'
         }}>
-          Inventory System
+          Ecommerce IMS
         </Typography>
       </Toolbar>
       <Divider />

@@ -3,7 +3,7 @@ import axios from 'axios';
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, CircularProgress, IconButton, Dialog, DialogActions,
-  DialogContent, DialogTitle, TextField, Grid, Checkbox, FormControlLabel
+  DialogContent, DialogTitle, TextField, Grid, Checkbox, FormControlLabel, Chip, MenuItem
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -213,7 +213,7 @@ function Customers() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5">Customer Management</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
-          Add Customer
+          Add New Customer
         </Button>
       </Box>
 
@@ -228,6 +228,7 @@ function Customers() {
               <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Name</TableCell>
               <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Email</TableCell>
               <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Phone</TableCell>
+              <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Type</TableCell>
               <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>GSTIN</TableCell>
               <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>City</TableCell>
               <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }} align="center">Actions</TableCell>
@@ -240,6 +241,13 @@ function Customers() {
                 <TableCell>{customer.name}</TableCell>
                 <TableCell>{customer.email || '-'}</TableCell>
                 <TableCell>{customer.phone}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={customer.customerType || 'Retail'} 
+                    size="small" 
+                    color={customer.customerType === 'Wholesale' ? 'primary' : 'default'}
+                  />
+                </TableCell>
                 <TableCell>{customer.gstin || '-'}</TableCell>
                 <TableCell>{customer.address?.city || customer.shippingAddress?.city || '-'}</TableCell>
                 <TableCell align="center">
@@ -291,6 +299,23 @@ function Customers() {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField label="Customer Type" name="customerType" value={formData.customerType} onChange={handleInputChange} fullWidth margin="dense" size="small" helperText="e.g., Retail, Wholesale"/>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField 
+                select
+                label="Customer Segment" 
+                name="customerSegment" 
+                value={formData.customerSegment || ''} 
+                onChange={handleInputChange} 
+                fullWidth 
+                margin="dense" 
+                size="small"
+              >
+                <MenuItem value="Regular">Regular</MenuItem>
+                <MenuItem value="Premium">Premium</MenuItem>
+                <MenuItem value="VIP">VIP</MenuItem>
+                <MenuItem value="Corporate">Corporate</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField label="Credit Limit" name="creditLimit" type="number" value={formData.creditLimit} onChange={handleInputChange} fullWidth margin="dense" size="small"/>

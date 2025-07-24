@@ -86,13 +86,44 @@ const salesOrderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['draft', 'confirmed', 'pending_dispatch', 'dispatched', 'delivered', 'cancelled', 'returned'],
+    enum: ['draft', 'confirmed', 'processing', 'pending_dispatch', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
     default: 'draft'
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid', 'partially_paid', 'refunded', 'failed'],
+    default: 'pending'
+  },
+  shippingMethod: {
+    type: String,
+    enum: ['standard', 'express', 'overnight', 'pickup'],
+    default: 'standard'
+  },
+  trackingNumber: {
+    type: String,
+    default: ''
+  },
+  shippingCost: {
+    type: Number,
+    default: 0
+  },
+  orderSource: {
+    type: String,
+    enum: ['website', 'mobile_app', 'marketplace', 'social_commerce', 'phone', 'in_store'],
+    default: 'website'
   },
   dispatchStatus: {
     type: String,
     enum: ['pending', 'partial', 'completed'],
     default: 'pending'
+  },
+  customerNotes: {
+    type: String,
+    default: ''
+  },
+  internalNotes: {
+    type: String,
+    default: ''
   },
   dispatchedItems: [{
     sku: {

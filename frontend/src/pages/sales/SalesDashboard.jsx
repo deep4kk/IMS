@@ -99,7 +99,7 @@ function SalesDashboard() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1">
-          Sales Dashboard
+          Ecommerce Order Dashboard
         </Typography>
         <FormControl size="small" sx={{ minWidth: 120 }}>
           <InputLabel>Time Period</InputLabel>
@@ -125,7 +125,7 @@ function SalesDashboard() {
                 <ShoppingCart color="primary" sx={{ mr: 2, fontSize: 40 }} />
                 <Box>
                   <Typography color="textSecondary" gutterBottom>
-                    Total Orders
+                    Customer Orders
                   </Typography>
                   <Typography variant="h4">
                     {dashboardData.totalOrders}
@@ -143,7 +143,7 @@ function SalesDashboard() {
                 <TrendingUp color="success" sx={{ mr: 2, fontSize: 40 }} />
                 <Box>
                   <Typography color="textSecondary" gutterBottom>
-                    Total Revenue
+                    Online Revenue
                   </Typography>
                   <Typography variant="h4">
                     ₹{dashboardData.totalRevenue.toLocaleString()}
@@ -161,7 +161,7 @@ function SalesDashboard() {
                 <Assignment color="warning" sx={{ mr: 2, fontSize: 40 }} />
                 <Box>
                   <Typography color="textSecondary" gutterBottom>
-                    Pending Dispatch
+                    Awaiting Fulfillment
                   </Typography>
                   <Typography variant="h4">
                     {dashboardData.pendingDispatch}
@@ -179,7 +179,7 @@ function SalesDashboard() {
                 <LocalShipping color="success" sx={{ mr: 2, fontSize: 40 }} />
                 <Box>
                   <Typography color="textSecondary" gutterBottom>
-                    Completed Orders
+                    Delivered Orders
                   </Typography>
                   <Typography variant="h4">
                     {dashboardData.completedOrders}
@@ -197,7 +197,7 @@ function SalesDashboard() {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Order Status Breakdown
+                Order Fulfillment Status
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -227,7 +227,7 @@ function SalesDashboard() {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Revenue Trend
+                Ecommerce Revenue Trend
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={dashboardData.monthlyRevenue}>
@@ -248,7 +248,7 @@ function SalesDashboard() {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Recent Sales Orders
+                Recent Customer Orders
               </Typography>
               <TableContainer>
                 <Table>
@@ -256,9 +256,9 @@ function SalesDashboard() {
                     <TableRow>
                       <TableCell>Order Number</TableCell>
                       <TableCell>Customer</TableCell>
-                      <TableCell>Date</TableCell>
+                      <TableCell>Order Date</TableCell>
                       <TableCell>Amount</TableCell>
-                      <TableCell>Status</TableCell>
+                      <TableCell>Fulfillment Status</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>

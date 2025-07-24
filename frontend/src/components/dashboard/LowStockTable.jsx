@@ -31,10 +31,10 @@ function LowStockTable({ items }) {
       <Table sx={{ minWidth: 650 }} aria-label="low stock items table">
         <TableHead>
           <TableRow sx={{ backgroundColor: 'background.default' }}>
-            <TableCell sx={{ fontWeight: 600 }}>SKU ID</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Product SKU</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Product Name</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Current Stock</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Min. Stock Level</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Reorder Point</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Supplier</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
           </TableRow>
@@ -70,7 +70,7 @@ function LowStockTable({ items }) {
                   size="small"
                   onClick={() => navigate(`/stock-adjustments/add/${item.id}`)}
                 >
-                  Restock
+                  Reorder
                 </Button>
               </TableCell>
             </TableRow>

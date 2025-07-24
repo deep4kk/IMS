@@ -291,7 +291,7 @@ function SKUManagement() {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>
-          SKU Management
+          Product Catalog Management
         </Typography>
         <Button
           variant="contained"
@@ -300,7 +300,7 @@ function SKUManagement() {
           onClick={() => navigate('/skus/add')}
           sx={{ py: 1.2 }}
         >
-          Add New SKU
+          Add New Product
         </Button>
       </Box>
 
@@ -309,7 +309,7 @@ function SKUManagement() {
           <Grid item xs={12} md={6} lg={6}>
             <TextField
               fullWidth
-              placeholder="Search by SKU, name, or barcode..."
+              placeholder="Search by product name, SKU, or barcode..."
               variant="outlined"
               size="small"
               value={searchTerm}
@@ -388,7 +388,7 @@ function SKUManagement() {
           {loading ? (
             <Skeleton width={200} />
           ) : (
-            `Showing ${startEntry} to ${endEntry} of ${totalCount} entries`
+            `Showing ${startEntry} to ${endEntry} of ${totalCount} products`
           )}
         </Typography>
         
@@ -563,7 +563,7 @@ function SKUManagement() {
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete SKU <strong>{selectedSku?.sku}</strong> - {selectedSku?.name}? 
+            Are you sure you want to delete product <strong>{selectedSku?.sku}</strong> - {selectedSku?.name}? 
             This action cannot be undone.
           </DialogContentText>
         </DialogContent>
@@ -591,19 +591,19 @@ function SKUManagement() {
           <ListItemIcon>
             <VisibilityIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>View Details</ListItemText>
+          <ListItemText>View Product Details</ListItemText>
         </MenuItem>
         <MenuItem onClick={handleEditSKU}>
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Edit SKU</ListItemText>
+          <ListItemText>Edit Product</ListItemText>
         </MenuItem>
         <MenuItem onClick={handleOpenDeleteDialog}>
           <ListItemIcon>
             <DeleteIcon fontSize="small" color="error" />
           </ListItemIcon>
-          <ListItemText primary="Delete" primaryTypographyProps={{ color: 'error' }} />
+          <ListItemText primary="Delete Product" primaryTypographyProps={{ color: 'error' }} />
         </MenuItem>
       </Menu>
 

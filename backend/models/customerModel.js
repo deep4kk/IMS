@@ -34,6 +34,20 @@ const customerSchema = new mongoose.Schema({
   // Customer Type (e.g., Retail, Wholesale, Corporate) - can be enum
   customerType: { type: String },
   
+  // Ecommerce specific fields
+  customerSegment: { 
+    type: String, 
+    enum: ['Regular', 'Premium', 'VIP', 'Corporate'],
+    default: 'Regular'
+  },
+  loyaltyPoints: { type: Number, default: 0 },
+  totalOrders: { type: Number, default: 0 },
+  totalSpent: { type: Number, default: 0 },
+  averageOrderValue: { type: Number, default: 0 },
+  lastOrderDate: { type: Date },
+  preferredShippingMethod: { type: String },
+  marketingOptIn: { type: Boolean, default: true },
+  
   // Credit Limit, Payment Terms
   creditLimit: { type: Number, default: 0 },
   paymentTerms: { type: String }, // e.g., "Net 30", "Due on Receipt"

@@ -184,7 +184,7 @@ function Dispatch() {
   return (
     <Box>
       <Typography variant="h5" component="h1" gutterBottom>
-        Dispatch Management
+        Order Fulfillment & Shipping
       </Typography>
 
       <Paper sx={{ width: '100%' }}>
@@ -194,7 +194,7 @@ function Dispatch() {
           indicatorColor="primary"
           textColor="primary"
         >
-          <Tab label="Pending Dispatch" />
+          <Tab label="Awaiting Fulfillment" />
           <Tab label="All Orders" />
         </Tabs>
 
@@ -206,7 +206,7 @@ function Dispatch() {
                   <TableCell>Order Number</TableCell>
                   <TableCell>Customer</TableCell>
                   <TableCell>Order Date</TableCell>
-                  <TableCell>Items Count</TableCell>
+                  <TableCell>Products</TableCell>
                   <TableCell>Total Amount</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
@@ -236,7 +236,7 @@ function Dispatch() {
                         onClick={() => handleDispatchOrder(order)}
                         sx={{ ml: 1 }}
                       >
-                        Dispatch
+                        Ship Order
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -254,8 +254,8 @@ function Dispatch() {
                   <TableCell>Order Number</TableCell>
                   <TableCell>Customer</TableCell>
                   <TableCell>Order Date</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Dispatch Status</TableCell>
+                  <TableCell>Order Status</TableCell>
+                  <TableCell>Shipping Status</TableCell>
                   <TableCell>Total Amount</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
@@ -306,12 +306,12 @@ function Dispatch() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Dispatch Order: {selectedOrder?.orderNumber}</DialogTitle>
+        <DialogTitle>Ship Order: {selectedOrder?.orderNumber}</DialogTitle>
         <DialogContent>
           {selectedOrder && (
             <Box>
               <Alert severity="info" sx={{ mb: 2 }}>
-                Please verify stock availability before dispatching. You cannot dispatch more than the current stock.
+                Please verify inventory availability before shipping. You cannot ship more than the current stock.
               </Alert>
               
               <Grid container spacing={2}>
@@ -328,7 +328,7 @@ function Dispatch() {
               </Grid>
 
               <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
-                Items to Dispatch
+                Products to Ship
               </Typography>
 
               {selectedOrder.items?.map((item, index) => (
@@ -348,13 +348,13 @@ function Dispatch() {
                       </Grid>
                       <Grid item xs={2}>
                         <Typography variant="body2">
-                          Stock: {skuStock[item.sku?._id] || 0}
+                          Available: {skuStock[item.sku?._id] || 0}
                         </Typography>
                       </Grid>
                       <Grid item xs={4}>
                         <TextField
                           type="number"
-                          label="Dispatch Quantity"
+                          label="Ship Quantity"
                           size="small"
                           value={dispatchQuantities[item.sku?._id] || 0}
                           onChange={(e) => {
@@ -390,7 +390,7 @@ function Dispatch() {
             variant="contained"
             disabled={loading}
           >
-            {loading ? 'Processing...' : 'Dispatch Order'}
+            {loading ? 'Processing...' : 'Ship Order'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -67,41 +67,46 @@ function Dashboard() {
     fetchDashboardData();
   }, [user]);
 
-  // Sample data (in a real app, this would come from the API)
+  // Sample ecommerce data (in a real app, this would come from the API)
   const sampleDashboardData = {
-    totalSKUs: 256,
-    activeInventoryValue: 125000,
-    lowStockItems: 15,
-    pendingOrders: 8,
+    totalProducts: 1256,
+    activeInventoryValue: 525000,
+    lowStockItems: 23,
+    pendingOrders: 47,
+    onlineOrders: 156,
+    totalRevenue: 89500,
+    conversionRate: 3.2,
+    avgOrderValue: 574,
     monthlySales: [
-      { month: 'Jan', sales: 4000 },
-      { month: 'Feb', sales: 3000 },
-      { month: 'Mar', sales: 5000 },
-      { month: 'Apr', sales: 4500 },
-      { month: 'May', sales: 6000 },
-      { month: 'Jun', sales: 5500 },
+      { month: 'Jan', sales: 45000, orders: 78 },
+      { month: 'Feb', sales: 52000, orders: 91 },
+      { month: 'Mar', sales: 67000, orders: 117 },
+      { month: 'Apr', sales: 58000, orders: 101 },
+      { month: 'May', sales: 73000, orders: 127 },
+      { month: 'Jun', sales: 89500, orders: 156 },
     ],
-    inventoryDistribution: [
-      { id: 0, value: 60, label: 'Warehouse A' },
-      { id: 1, value: 25, label: 'Warehouse B' },
-      { id: 2, value: 15, label: 'Warehouse C' },
+    channelDistribution: [
+      { id: 0, value: 45, label: 'Website' },
+      { id: 1, value: 30, label: 'Mobile App' },
+      { id: 2, value: 15, label: 'Marketplace' },
+      { id: 3, value: 10, label: 'Social Commerce' },
     ],
     categoryDistribution: [
       { name: 'Electronics', value: 30 },
-      { name: 'Clothing', value: 25 },
-      { name: 'Home Goods', value: 20 },
-      { name: 'Sports', value: 15 },
+      { name: 'Fashion', value: 25 },
+      { name: 'Home & Living', value: 20 },
+      { name: 'Beauty & Personal Care', value: 15 },
       { name: 'Other', value: 10 },
     ],
-    recentTransactions: [
-      { id: 1, date: '2023-06-15', type: 'purchase', amount: 1250, supplier: 'ABC Corp' },
-      { id: 2, date: '2023-06-14', type: 'sale', amount: 980, customer: 'XYZ Ltd' },
-      { id: 3, date: '2023-06-13', type: 'adjustment', amount: -45, reason: 'Damaged' },
+    recentOrders: [
+      { id: 1, date: '2023-06-15', type: 'online', amount: 1250, customer: 'John Doe', status: 'processing' },
+      { id: 2, date: '2023-06-14', type: 'mobile', amount: 980, customer: 'Jane Smith', status: 'shipped' },
+      { id: 3, date: '2023-06-13', type: 'marketplace', amount: 745, customer: 'Mike Johnson', status: 'delivered' },
     ],
     lowStockItems: [
-      { id: '001', name: 'Product A', current: 5, min: 10, supplier: 'ABC Corp' },
-      { id: '002', name: 'Product B', current: 3, min: 15, supplier: 'XYZ Ltd' },
-      { id: '003', name: 'Product C', current: 7, min: 20, supplier: 'DEF Inc' },
+      { id: 'SKU001', name: 'Wireless Headphones', current: 5, min: 10, supplier: 'TechCorp' },
+      { id: 'SKU002', name: 'Smart Watch', current: 3, min: 15, supplier: 'GadgetCo' },
+      { id: 'SKU003', name: 'Bluetooth Speaker', current: 7, min: 20, supplier: 'AudioTech' },
     ]
   };
 
@@ -144,41 +149,40 @@ function Dashboard() {
       >
         <Grid container spacing={3}>
           {/* Summary Cards */}
-          <Grid item xs={12} md={6} lg={3}>
+          <Grid item xs={12} sm={6} lg={3}>
             <motion.div variants={itemVariants}>
               <DashboardCard 
-                title="Total SKUs"
-                value={loading ? <Skeleton width={80} /> : typeof data.totalSKUs === 'number' ? data.totalSKUs.toString() : data.totalSKUs}
+                title="Total Products"
+                value={loading ? <Skeleton width={80} /> : typeof data.totalProducts === 'number' ? data.totalProducts.toString() : data.totalProducts}
                 icon={<InventoryIcon />}
                 color="primary"
-                onClick={() => navigate('/inventory')}
+                onClick={() => navigate('/skus')}
               />
             </motion.div>
           </Grid>
-          <Grid item xs={12} md={6} lg={3}>
+          <Grid item xs={12} sm={6} lg={3}>
             <motion.div variants={itemVariants}>
               <DashboardCard 
-                title="Active Inventory Value"
-                value={loading ? <Skeleton width={120} /> : typeof data.activeInventoryValue === 'number' ? `$${data.activeInventoryValue.toLocaleString()}` : data.activeInventoryValue}
+                title="Total Revenue"
+                value={loading ? <Skeleton width={120} /> : typeof data.totalRevenue === 'number' ? `₹${data.totalRevenue.toLocaleString()}` : data.totalRevenue}
                 icon={<TrendingUpIcon />}
                 color="success"
-                onClick={() => navigate('/inventory')}
+                onClick={() => navigate('/sales/dashboard')}
               />
             </motion.div>
           </Grid>
-          <Grid item xs={12} md={6} lg={3}>
+          <Grid item xs={12} sm={6} lg={3}>
             <motion.div variants={itemVariants}>
               <DashboardCard 
-                title="Low Stock Items"
-                value={loading ? <Skeleton width={80} /> : Array.isArray(data.lowStockItems) ? data.lowStockItems.length.toString() : data.lowStockItems}
+                title="Online Orders"
+                value={loading ? <Skeleton width={80} /> : typeof data.onlineOrders === 'number' ? data.onlineOrders.toString() : data.onlineOrders}
                 icon={<WarningIcon />}
-                color="warning"
-                onClick={() => navigate('/inventory/low-stock')}
-                isWarning
+                color="info"
+                onClick={() => navigate('/sales/orders')}
               />
             </motion.div>
           </Grid>
-          <Grid item xs={12} md={6} lg={3}>
+          <Grid item xs={12} sm={6} lg={3}>
             <motion.div variants={itemVariants}>
               <DashboardCard 
                 title="Pending Orders"
@@ -204,7 +208,6 @@ function Dashboard() {
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                   Monthly Sales Trend
                 </Typography>
-                {loading ? (
                   <Box sx={{ width: '100%', height: 350, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Skeleton variant="rectangular" width="100%" height={300} />
                   </Box>
@@ -212,12 +215,12 @@ function Dashboard() {
                   <Box sx={{ width: '100%', height: 350 }}>
                     <BarChart
                       series={[{
-                        data: data.monthlySales?.map(item => item.sales) || [],
-                        label: 'Sales',
+                        data: data.monthlyRevenue?.map(item => item.revenue) || [],
+                        label: 'Revenue (₹)',
                         color: theme.palette.primary.main,
                       }]}
                       xAxis={[{
-                        data: data.monthlySales.map(item => item.month),
+                        data: data.monthlyRevenue.map(item => item.month),
                         scaleType: 'band',
                       }]}
                       height={300}
@@ -239,7 +242,7 @@ function Dashboard() {
                 }}
               >
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                  Inventory by Warehouse
+                  Sales by Channel
                 </Typography>
                 {loading ? (
                   <Box sx={{ width: '100%', height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -250,7 +253,7 @@ function Dashboard() {
                     <PieChart
                       series={[
                         {
-                          data: data.inventoryDistribution,
+                          data: data.channelDistribution,
                           innerRadius: 60,
                           paddingAngle: 2,
                           cornerRadius: 4,
@@ -276,15 +279,15 @@ function Dashboard() {
               >
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Low Stock Items
+                    Low Stock Products
                   </Typography>
                   <Button 
                     variant="outlined" 
                     color="primary" 
                     size="small"
-                    onClick={() => navigate('/stock-adjustments')}
+                    onClick={() => navigate('/inventory/adjustments')}
                   >
-                    Manage Stock
+                    Restock Products
                   </Button>
                 </Box>
                 <Divider sx={{ mb: 2 }} />

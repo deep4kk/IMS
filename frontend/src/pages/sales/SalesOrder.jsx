@@ -340,7 +340,7 @@ function SalesOrder() {
       <Box sx={{ p: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
         <Paper elevation={3} sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-            Sales Orders
+            Customer Orders
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
@@ -358,7 +358,7 @@ function SalesOrder() {
               startIcon={<AddIcon />}
               onClick={() => setDialogOpen(true)}
             >
-              Create Order
+              Create Customer Order
             </Button>
           </Box>
         </Paper>
@@ -377,8 +377,8 @@ function SalesOrder() {
                   <MenuItem value="">All</MenuItem>
                   <MenuItem value="draft">Draft</MenuItem>
                   <MenuItem value="confirmed">Confirmed</MenuItem>
-                  <MenuItem value="pending_dispatch">Pending Dispatch</MenuItem>
-                  <MenuItem value="dispatched">Dispatched</MenuItem>
+                  <MenuItem value="pending_dispatch">Processing</MenuItem>
+                  <MenuItem value="dispatched">Shipped</MenuItem>
                   <MenuItem value="delivered">Delivered</MenuItem>
                   <MenuItem value="cancelled">Cancelled</MenuItem>
                 </Select>
@@ -516,7 +516,7 @@ function SalesOrder() {
           fullWidth
         >
           <DialogTitle>
-            {selectedOrder ? `Edit Sales Order - ${selectedOrder.orderNumber}` : 'Create Sales Order'}
+            {selectedOrder ? `Edit Customer Order - ${selectedOrder.orderNumber}` : 'Create Customer Order'}
           </DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -544,7 +544,7 @@ function SalesOrder() {
               </Grid>
               <Grid item xs={12} md={6}>
                 <DatePicker
-                  label="Expected Delivery Date"
+                  label="Estimated Delivery Date"
                   value={formData.expectedDeliveryDate}
                   onChange={(date) => setFormData(prev => ({ ...prev, expectedDeliveryDate: date }))}
                   renderInput={(params) => <TextField {...params} fullWidth required />}
@@ -555,19 +555,20 @@ function SalesOrder() {
               <Grid item xs={12} md={6}>
                 <TextField
                   select
-                  label="Delivery Method"
+                  label="Shipping Method"
                   value={formData.deliveryMethod}
                   onChange={(e) => setFormData(prev => ({ ...prev, deliveryMethod: e.target.value }))}
                   fullWidth
                 >
                   <MenuItem value="standard">Standard Shipping</MenuItem>
                   <MenuItem value="express">Express Shipping</MenuItem>
+                  <MenuItem value="overnight">Overnight Delivery</MenuItem>
                   <MenuItem value="pickup">Customer Pickup</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12} md={6}>
                 <TextField
-                  label="Sales Person"
+                  label="Sales Representative"
                   value={formData.salesPerson}
                   onChange={(e) => setFormData(prev => ({ ...prev, salesPerson: e.target.value }))}
                   fullWidth
@@ -576,7 +577,7 @@ function SalesOrder() {
 
               {/* Items Section */}
               <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2 }}>Order Items</Typography>
+                <Typography variant="h6" sx={{ mb: 2 }}>Products in Order</Typography>
                 {formData.items.map((item, index) => (
                   <Card key={index} sx={{ mb: 2 }}>
                     <CardContent>
@@ -584,11 +585,11 @@ function SalesOrder() {
                         <Grid item xs={12} md={3}>
                           <Autocomplete
                             options={skus}
-                            getOptionLabel={(option) => `${option.name} (${option.sku})` || ''}
+                            getOptionLabel={(option) => `${option.name} - ${option.sku}` || ''}
                             value={skus.find(s => s._id === item.sku) || null}
                             onChange={(_, newValue) => updateItem(index, 'sku', newValue?._id || '')}
                             renderInput={(params) => (
-                              <TextField {...params} label="SKU" required size="small" />
+                              <TextField {...params} label="Product" required size="small" />
                             )}
                           />
                         </Grid>
@@ -662,14 +663,14 @@ function SalesOrder() {
               {/* Total */}
               <Grid item xs={12}>
                 <Typography variant="h6" align="right">
-                  Total: ${calculateTotal().toFixed(2)}
+                  Order Total: ₹{calculateTotal().toFixed(2)}
                 </Typography>
               </Grid>
 
               {/* Notes */}
               <Grid item xs={12}>
                 <TextField
-                  label="Notes"
+                  label="Order Notes"
                   value={formData.notes}
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                   multiline
@@ -688,7 +689,7 @@ function SalesOrder() {
               variant="contained"
               disabled={loading}
             >
-              {loading ? <CircularProgress size={20} /> : (selectedOrder ? 'Update' : 'Create')}
+              {loading ? <CircularProgress size={20} /> : (selectedOrder ? 'Update Order' : 'Create Order')}
             </Button>
           </DialogActions>
         </Dialog>
@@ -701,7 +702,7 @@ function SalesOrder() {
           fullWidth
         >
           <DialogTitle>
-            Sales Order Details - {selectedOrder?.orderNumber}
+            Customer Order Details - {selectedOrder?.orderNumber}
           </DialogTitle>
           <DialogContent>
             {selectedOrder && (
@@ -709,19 +710,19 @@ function SalesOrder() {
                 <Grid item xs={12} md={6}>
                   <Typography variant="body2"><strong>Customer:</strong> {selectedOrder.customer?.name}</Typography>
                   <Typography variant="body2"><strong>Order Date:</strong> {new Date(selectedOrder.orderDate).toLocaleDateString()}</Typography>
-                  <Typography variant="body2"><strong>Status:</strong> {selectedOrder.status}</Typography>
+                  <Typography variant="body2"><strong>Fulfillment Status:</strong> {selectedOrder.status}</Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <Typography variant="body2"><strong>Total Amount:</strong> ${selectedOrder.totalAmount?.toFixed(2)}</Typography>
-                  <Typography variant="body2"><strong>Sales Person:</strong> {selectedOrder.salesPerson || 'N/A'}</Typography>
+                  <Typography variant="body2"><strong>Order Total:</strong> ₹{selectedOrder.totalAmount?.toFixed(2)}</Typography>
+                  <Typography variant="body2"><strong>Sales Rep:</strong> {selectedOrder.salesPerson || 'N/A'}</Typography>
                 </Grid>
                 <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Items</Typography>
+                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Ordered Products</Typography>
                   <TableContainer>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell>SKU</TableCell>
+                          <TableCell>Product</TableCell>
                           <TableCell>Quantity</TableCell>
                           <TableCell>Unit Price</TableCell>
                           <TableCell>Total</TableCell>
@@ -732,8 +733,8 @@ function SalesOrder() {
                           <TableRow key={index}>
                             <TableCell>{item.sku?.name || 'N/A'}</TableCell>
                             <TableCell>{item.quantity}</TableCell>
-                            <TableCell>${item.unitPrice?.toFixed(2)}</TableCell>
-                            <TableCell>${item.totalAmount?.toFixed(2)}</TableCell>
+                            <TableCell>₹{item.unitPrice?.toFixed(2)}</TableCell>
+                            <TableCell>₹{item.totalAmount?.toFixed(2)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

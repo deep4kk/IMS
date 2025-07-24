@@ -121,7 +121,7 @@ function PurchaseDashboard() {
     <Box sx={{ p: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
       <Paper elevation={3} sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          Purchase Dashboard
+          Procurement Dashboard
         </Typography>
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Time Period</InputLabel>
@@ -141,10 +141,10 @@ function PurchaseDashboard() {
       {/* KPI Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {[
-          { title: 'Total Purchase Orders', value: dashboardData.totalPOs, icon: <Receipt sx={{ fontSize: 40 }} />, color: 'primary.main' },
-          { title: 'Total Spent', value: `₹${dashboardData.totalSpent.toLocaleString()}`, icon: <Inventory sx={{ fontSize: 40 }} />, color: 'info.main' },
-          { title: 'Pending Receiving', value: dashboardData.pendingReceiving, icon: <LocalShipping sx={{ fontSize: 40 }} />, color: 'warning.main' },
-          { title: 'Completed POs', value: dashboardData.completedPOs, icon: <Assignment sx={{ fontSize: 40 }} />, color: 'success.main' }
+          { title: 'Purchase Orders', value: dashboardData.totalPOs, icon: <Receipt sx={{ fontSize: 40 }} />, color: 'primary.main' },
+          { title: 'Procurement Spend', value: `₹${dashboardData.totalSpent.toLocaleString()}`, icon: <Inventory sx={{ fontSize: 40 }} />, color: 'info.main' },
+          { title: 'Pending Deliveries', value: dashboardData.pendingReceiving, icon: <LocalShipping sx={{ fontSize: 40 }} />, color: 'warning.main' },
+          { title: 'Received Orders', value: dashboardData.completedPOs, icon: <Assignment sx={{ fontSize: 40 }} />, color: 'success.main' }
         ].map((item, index) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
             <Card elevation={3} sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
@@ -168,7 +168,7 @@ function PurchaseDashboard() {
           <Card elevation={3}>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-                Purchase Order Status
+                Procurement Order Status
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -199,7 +199,7 @@ function PurchaseDashboard() {
           <Card elevation={3}>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-                Monthly Spending Trend
+                Monthly Procurement Spend
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={dashboardData.monthlySpending}>
@@ -220,7 +220,7 @@ function PurchaseDashboard() {
           <Card elevation={3}>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-                Top Vendors by Spending
+                Top Suppliers by Volume
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={dashboardData.topVendors} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -240,14 +240,14 @@ function PurchaseDashboard() {
           <Card elevation={3}>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-                Recent Purchase Orders
+                Recent Procurement Orders
               </Typography>
               <TableContainer>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 'bold' }}>PO Number</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Vendor</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Supplier</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
                     </TableRow>
@@ -256,7 +256,7 @@ function PurchaseDashboard() {
                     {dashboardData.recentPOs.slice(0, 5).map((po, index) => (
                       <TableRow key={po._id || index} hover>
                         <TableCell>{po.poNumber || `PO-${1000 + index}`}</TableCell>
-                        <TableCell>{po.vendor?.name || 'Vendor Name'}</TableCell>
+                        <TableCell>{po.vendor?.name || 'Supplier Name'}</TableCell>
                         <TableCell>
                           {po.createdAt ? new Date(po.createdAt).toLocaleDateString() : 'N/A'}
                         </TableCell>

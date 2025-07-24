@@ -201,12 +201,12 @@ function AddEditSKU() {
         }}
       >
         <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
-          {isEdit ? 'Edit SKU' : 'Add New SKU'}
+          {isEdit ? 'Edit Product' : 'Add New Product'}
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
           {isEdit 
-            ? 'Update the details of an existing Stock Keeping Unit (SKU).' 
-            : 'Create a new Stock Keeping Unit (SKU) in your inventory system.'}
+            ? 'Update the details of an existing product in your catalog.' 
+            : 'Add a new product to your ecommerce catalog.'}
         </Typography>
         <Divider sx={{ mb: 3 }} />
         
@@ -221,7 +221,7 @@ function AddEditSKU() {
             {/* Basic Information */}
             <Grid item xs={12}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
-                Basic Information
+                Product Information
               </Typography>
             </Grid>
             
@@ -254,7 +254,7 @@ function AddEditSKU() {
                     onBlur={formik.handleBlur}
                     error={formik.touched.sku && Boolean(formik.errors.sku)}
                     helperText={formik.touched.sku && formik.errors.sku}
-                    disabled={isEdit} // SKU code shouldn't change for existing items
+                    disabled={isEdit} // SKU code shouldn't change for existing products
                   />
                 </Grid>
                 
@@ -263,7 +263,7 @@ function AddEditSKU() {
                     fullWidth
                     id="barcode"
                     name="barcode"
-                    label="Barcode"
+                    label="Barcode/UPC"
                     variant="outlined"
                     value={formik.values.barcode}
                     onChange={formik.handleChange}
@@ -278,7 +278,7 @@ function AddEditSKU() {
                     fullWidth
                     error={formik.touched.category && Boolean(formik.errors.category)}
                   >
-                    <InputLabel id="category-label">Category</InputLabel>
+                    <InputLabel id="category-label">Product Category</InputLabel>
                     <Select
                       labelId="category-label"
                       id="category"
@@ -286,7 +286,7 @@ function AddEditSKU() {
                       value={formik.values.category}
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
-                      label="Category"
+                      label="Product Category"
                     >
                       {categories.map((category) => (
                         <MenuItem key={category} value={category}>
@@ -305,7 +305,7 @@ function AddEditSKU() {
                     fullWidth
                     id="description"
                     name="description"
-                    label="Description"
+                    label="Product Description"
                     variant="outlined"
                     multiline
                     rows={4}
@@ -396,7 +396,7 @@ function AddEditSKU() {
             <Grid item xs={12} sx={{ mt: 2 }}>
               <Divider />
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 500, mt: 2 }}>
-                Pricing & Stock
+                Pricing & Inventory
               </Typography>
             </Grid>
             
@@ -405,7 +405,7 @@ function AddEditSKU() {
                 fullWidth
                 id="costPrice"
                 name="costPrice"
-                label="Cost Price"
+                label="Cost Price (COGS)"
                 type="number"
                 variant="outlined"
                 value={formik.values.costPrice}
@@ -424,7 +424,7 @@ function AddEditSKU() {
                 fullWidth
                 id="sellingPrice"
                 name="sellingPrice"
-                label="Selling Price"
+                label="Retail Price"
                 type="number"
                 variant="outlined"
                 value={formik.values.sellingPrice}
@@ -443,7 +443,7 @@ function AddEditSKU() {
                 fullWidth
                 id="initialStock"
                 name="initialStock"
-                label="Initial Stock"
+                label="Initial Inventory"
                 type="number"
                 variant="outlined"
                 value={formik.values.initialStock}
@@ -451,7 +451,7 @@ function AddEditSKU() {
                 onBlur={formik.handleBlur}
                 error={formik.touched.initialStock && Boolean(formik.errors.initialStock)}
                 helperText={formik.touched.initialStock && formik.errors.initialStock}
-                disabled={isEdit} // Can't change initial stock for existing items
+                disabled={isEdit} // Can't change initial stock for existing products
               />
             </Grid>
             
@@ -460,7 +460,7 @@ function AddEditSKU() {
                 fullWidth
                 id="minStockLevel"
                 name="minStockLevel"
-                label="Min Stock Level"
+                label="Reorder Point"
                 type="number"
                 variant="outlined"
                 value={formik.values.minStockLevel}
@@ -475,7 +475,7 @@ function AddEditSKU() {
             <Grid item xs={12} sx={{ mt: 2 }}>
               <Divider />
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 500, mt: 2 }}>
-                Location and Supplier
+                Fulfillment & Sourcing
               </Typography>
             </Grid>
             
@@ -484,7 +484,7 @@ function AddEditSKU() {
                 fullWidth
                 error={formik.touched.warehouseId && Boolean(formik.errors.warehouseId)}
               >
-                <InputLabel id="warehouse-label">Warehouse</InputLabel>
+                <InputLabel id="warehouse-label">Fulfillment Center</InputLabel>
                 <Select
                   labelId="warehouse-label"
                   id="warehouseId"
@@ -492,7 +492,7 @@ function AddEditSKU() {
                   value={formik.values.warehouseId}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  label="Warehouse"
+                  label="Fulfillment Center"
                 >
                   {warehouses.map((warehouse) => (
                     <MenuItem key={warehouse._id} value={warehouse._id}>
@@ -593,7 +593,7 @@ function AddEditSKU() {
               <Autocomplete
                 multiple
                 id="tags"
-                options={['Premium', 'New Arrival', 'Sale', 'Best Seller', 'Seasonal', 'Limited Edition']}
+                options={['Premium', 'New Arrival', 'Sale', 'Best Seller', 'Trending', 'Limited Edition', 'Featured', 'Clearance']}
                 freeSolo
                 value={formik.values.tags}
                 onChange={(event, newValue) => {
@@ -613,8 +613,8 @@ function AddEditSKU() {
                   <TextField
                     {...params}
                     variant="outlined"
-                    label="Tags"
-                    placeholder="Add tags"
+                    label="Product Tags"
+                    placeholder="Add product tags for better categorization"
                   />
                 )}
               />
@@ -654,7 +654,7 @@ function AddEditSKU() {
                   disabled={loading}
                   startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
                 >
-                  {loading ? 'Saving...' : `${isEdit ? 'Update' : 'Create'} SKU`}
+                  {loading ? 'Saving...' : `${isEdit ? 'Update' : 'Add'} Product`}
                 </Button>
               </Box>
             </Grid>
