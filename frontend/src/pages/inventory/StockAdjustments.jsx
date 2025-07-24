@@ -232,7 +232,7 @@ function StockAdjustment() {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h5" component="h1">
-          Stock Adjustments
+          Inventory Adjustments
         </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
@@ -247,7 +247,7 @@ function StockAdjustment() {
             startIcon={<AddIcon />}
             onClick={() => setOpenDialog(true)}
           >
-            New Adjustment
+            Adjust Inventory
           </Button>
         </Box>
       </Box>
@@ -259,7 +259,7 @@ function StockAdjustment() {
             <TextField
               fullWidth
               size="small"
-              label="Search SKUs"
+              label="Search Products"
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
               InputProps={{
@@ -431,7 +431,7 @@ function StockAdjustment() {
 
       {/* Single Adjustment Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>New Stock Adjustment</DialogTitle>
+        <DialogTitle>New Inventory Adjustment</DialogTitle>
         <form onSubmit={handleSubmit}>
           <DialogContent>
             <Grid container spacing={3}>
@@ -446,7 +446,7 @@ function StockAdjustment() {
                       setForm(prev => ({ ...prev, sku: newValue?._id || '' }));
                     }}
                     renderInput={(params) => (
-                      <TextField {...params} label="Select SKU" required />
+                      <TextField {...params} label="Select Product" required />
                     )}
                   />
                 </FormControl>
@@ -457,7 +457,7 @@ function StockAdjustment() {
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" gutterBottom>
-                        Stock Information
+                        Inventory Information
                       </Typography>
                       <Grid container spacing={2}>
                         <Grid item xs={4}>
@@ -558,7 +558,7 @@ function StockAdjustment() {
 
       {/* Bulk Adjustment Dialog */}
       <Dialog open={openBulkDialog} onClose={() => setOpenBulkDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Bulk Stock Adjustment</DialogTitle>
+        <DialogTitle>Bulk Inventory Adjustment</DialogTitle>
         <form onSubmit={handleBulkSubmit}>
           <DialogContent>
             <Grid container spacing={3}>
@@ -570,7 +570,7 @@ function StockAdjustment() {
                   value={selectedSkus}
                   onChange={(e, newValue) => setSelectedSkus(newValue)}
                   renderInput={(params) => (
-                    <TextField {...params} label="Select SKUs" />
+                    <TextField {...params} label="Select Products" />
                   )}
                 />
               </Grid>
@@ -617,7 +617,7 @@ function StockAdjustment() {
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell>SKU</TableCell>
+                          <TableCell>Product</TableCell>
                           <TableCell>Current Stock</TableCell>
                           <TableCell>Adjustment</TableCell>
                           <TableCell>New Stock</TableCell>
